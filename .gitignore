@@ -159,3 +159,17 @@ yarn-debug.log
 .vscode/
 *.swp
 *.swo
+
+# Angular build output
+/dist
+/out-tsc
+
+# Node modules
+/node_modules
+
+# Environment files (si tienes datos sensibles)
+src/environments/environment*.ts
+
+# IDE files
+.vscode
+*.log

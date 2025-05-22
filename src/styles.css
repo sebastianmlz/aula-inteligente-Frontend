@@ -1,4 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+
+@import 'primeicons/primeicons.css';
 @layer tailwind-base, primeng, tailwind-utilities;
 
 @layer tailwind-base {
@@ -9,3 +11,4 @@
     @tailwind components;
     @tailwind utilities;
 }
+

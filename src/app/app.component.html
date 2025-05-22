@@ -1,5 +1,9 @@
-<div class="card flex justify-center">
-    <p-button label="Check" />
+<!-- Header siempre visible, pero internamente decide qué mostrar -->
+<app-header *ngIf="authService.isLoggedIn()" />
+
+<div class="flex justify-start  ml-4">
+    <app-sidebar *ngIf="authService.isLoggedIn()"/>
 </div>
 
+<p-toast></p-toast>
 <router-outlet />

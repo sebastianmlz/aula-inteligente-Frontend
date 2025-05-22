@@ -1,0 +1,157 @@
+<div class="m-4 flex justify-end">
+  <button pButton type="button" label="Registrar usuario" icon="pi pi-user-plus" (click)="abrirModalRegistro()"></button>
+</div>
+
+<div class="bg-white rounded-xl overflow-visible shadow-md mt-3">
+  <p-table 
+    [value]="usuarios" 
+    [rows]="pageSize" 
+    [paginator]="true" 
+    [lazy]="true"
+    [totalRecords]="totalRecords" 
+    (onPage)="onPageChange($event)"
+    [loading]="loading"
+    [rowsPerPageOptions]="[5, 10, 20, 50]"
+    [first]="(currentPage-1) * pageSize"
+  >
+    <ng-template pTemplate="header">
+      <tr class="bg-blue-800 text-white">
+        <th class="px-4 py-2">ID</th>
+        <th class="px-4 py-2">Email</th>
+        <th class="px-4 py-2">Nombre</th>
+        <th class="px-4 py-2">Apellido</th>
+        <th class="px-4 py-2">Activo</th>
+        <th class="px-4 py-2">Grupo</th>
+        <th class="px-4 py-2">Editar</th>
+        <th class="px-4 py-2">Eliminar</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-usuario>
+      <tr>
+        <td class="border px-4 py-2">{{ usuario.id }}</td>
+        <td class="border px-4 py-2">{{ usuario.email }}</td>
+        <td class="border px-4 py-2">{{ usuario.first_name }}</td>
+        <td class="border px-4 py-2">{{ usuario.last_name }}</td>
+        <td class="border px-4 py-2">
+          <span [ngClass]="usuario.is_active ? 'text-green-600' : 'text-red-600'">
+            {{ usuario.is_active ? 'Sí' : 'No' }}
+          </span>
+        </td>
+        <td class="border px-4 py-2">
+          {{ usuario.group_names && usuario.group_names.length > 0 ? usuario.group_names[0] : '-' }}
+        </td>
+        <td class="border px-4 py-2 text-center">
+          <p-button icon="pi pi-pencil" class="mr-2" rounded outlined (click)="editarUsuario(usuario)"></p-button>
+        </td>
+        <td class="border px-4 py-2 text-center">
+          <p-button icon="pi pi-trash" severity="danger" rounded outlined (click)="eliminarUsuario(usuario.id)"></p-button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Modal de edición -->
+<p-dialog [(visible)]="editarModalVisible" [modal]="true" [closable]="true" [style]="{'border-radius': '1rem', overflow: 'hidden'}" [styleClass]="'w-[90vw] md:w-[50vw] lg:w-[40vw]'">
+  <ng-template pTemplate="header">
+    <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl">
+      <h2 class="text-xl font-bold text-white text-center">Editar Usuario</h2>
+    </div>
+  </ng-template>
+  <form *ngIf="usuarioEditando" (ngSubmit)="actualizarUsuario()" #editForm="ngForm" class="p-6 bg-white/90 rounded-b-2xl">
+    <div class="flex flex-col gap-4">
+      <div class="field">
+        <label for="first_name" class="text-blue-900 font-semibold mb-1">Nombre</label>
+        <input id="first_name" type="text" pInputText [(ngModel)]="usuarioEditando.first_name" name="first_name" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="last_name" class="text-blue-900 font-semibold mb-1">Apellido</label>
+        <input id="last_name" type="text" pInputText [(ngModel)]="usuarioEditando.last_name" name="last_name" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="email" class="text-blue-900 font-semibold mb-1">Email</label>
+        <input id="email" type="email" pInputText [(ngModel)]="usuarioEditando.email" name="email" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="parent_name" class="text-blue-900 font-semibold mb-1">Nombre del Apoderado</label>
+        <input id="parent_name" type="text" pInputText [(ngModel)]="usuarioEditando.parent_name" name="parent_name"
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="parent_contact" class="text-blue-900 font-semibold mb-1">Contacto del Apoderado</label>
+        <input id="parent_contact" type="text" pInputText [(ngModel)]="usuarioEditando.parent_contact" name="parent_contact"
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="parent_email" class="text-blue-900 font-semibold mb-1">Email del Apoderado</label>
+        <input id="parent_email" type="email" pInputText [(ngModel)]="usuarioEditando.parent_email" name="parent_email"
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label for="enrollment_date" class="text-blue-900 font-semibold mb-1">Fecha de Inscripción</label>
+        <input id="enrollment_date" type="date" pInputText [(ngModel)]="usuarioEditando.enrollment_date" name="enrollment_date"
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+    </div>
+    <div class="flex justify-end mt-6">
+      <button pButton type="submit" label="Guardar" [disabled]="editForm.invalid"
+        class="bg-blue-700 border-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shadow px-6 py-2 transition"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Modal de registro -->
+<p-dialog [(visible)]="registroModalVisible" [modal]="true" [closable]="true"  [style]="{'border-radius': '1rem', overflow: 'hidden'}" [styleClass]="'w-[90vw] md:w-[50vw] lg:w-[40vw]'">
+  <ng-template pTemplate="header">
+    <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl">
+      <h2 class="text-xl font-bold text-white text-center">Registrar Usuario</h2>
+    </div>
+  </ng-template>
+  <form #registroForm="ngForm" (ngSubmit)="registrarUsuario()" class="p-6 bg-white/90 rounded-b-2xl">
+    <div class="flex flex-col gap-4">
+      <div class="field">
+        <label class="text-blue-900 font-semibold mb-1">Email</label>
+        <input type="email" pInputText [(ngModel)]="nuevoUsuario.email" name="email" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label class="text-blue-900 font-semibold mb-1">Contraseña</label>
+        <input type="password" pInputText [(ngModel)]="nuevoUsuario.password" name="password" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label class="text-blue-900 font-semibold mb-1">Nombre</label>
+        <input type="text" pInputText [(ngModel)]="nuevoUsuario.first_name" name="first_name" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label class="text-blue-900 font-semibold mb-1">Apellido</label>
+        <input type="text" pInputText [(ngModel)]="nuevoUsuario.last_name" name="last_name" required
+          class="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+      </div>
+      <div class="field">
+        <label class="text-blue-900 font-semibold mb-1">Rol</label>
+        <p-dropdown 
+          [options]="roles"
+          [(ngModel)]="nuevoUsuario.groups"
+          name="groups"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="true"
+          class="w-full"
+          styleClass="w-full p-2 rounded-lg border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+          required>
+        </p-dropdown>
+      </div>
+    </div>
+    <div class="flex justify-end mt-6">
+      <button pButton type="submit" label="Registrar" [disabled]="registroForm.invalid"
+        class="bg-blue-700 border-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shadow px-6 py-2 transition"></button>
+    </div>
+  </form>
+</p-dialog>
+
+
