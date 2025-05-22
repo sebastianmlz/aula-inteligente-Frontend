@@ -6,39 +6,22 @@ const path = require('path');
 const serverRoot = __dirname;
 console.log('Server root directory:', serverRoot);
 
-// Define possible dist folder locations (handling capitalization differences)
-const possibleDistFolders = [
-  path.join(serverRoot, 'dist', 'aula-inteligente-frontend'),
-  path.join(serverRoot, 'dist', 'aula-inteligente-Frontend')
-];
+// Angular now outputs to a 'browser' subfolder with the new application builder
+let baseDistFolder = path.join(serverRoot, 'dist', 'aula-inteligente-frontend');
+let distFolder = path.join(baseDistFolder, 'browser'); // Check the browser subfolder first
 
-// Find the correct dist folder
-let distFolder = null;
-for (const folder of possibleDistFolders) {
-  if (fs.existsSync(folder)) {
-    distFolder = folder;
-    break;
-  }
+// If browser subfolder doesn't exist, fall back to the base folder
+if (!fs.existsSync(distFolder)) {
+  distFolder = baseDistFolder;
 }
 
 // Log dist folder status
-if (distFolder) {
+if (fs.existsSync(distFolder)) {
   console.log('Found Angular dist folder:', distFolder);
   const files = fs.readdirSync(distFolder);
   console.log('Files in dist folder:', files.join(', '));
 } else {
   console.error('ERROR: Angular dist folder not found!');
-  console.log('Checked paths:');
-  possibleDistFolders.forEach(p => console.log(' - ' + p));
-
-  // Look for any dist folder
-  const rootContents = fs.readdirSync(serverRoot);
-  console.log('Server root contents:', rootContents.join(', '));
-  
-  if (rootContents.includes('dist')) {
-    const distContents = fs.readdirSync(path.join(serverRoot, 'dist'));
-    console.log('Dist folder contents:', distContents.join(', '));
-  }
 }
 
 // Create HTTP server
@@ -56,7 +39,7 @@ const server = http.createServer((req, res) => {
     }
     
     // Determine file path
-    const filePath = path.join(distFolder || serverRoot, reqPath);
+    const filePath = path.join(distFolder, reqPath);
     
     // Determine content type
     const extname = String(path.extname(filePath)).toLowerCase();
@@ -70,6 +53,10 @@ const server = http.createServer((req, res) => {
       '.gif': 'image/gif',
       '.svg': 'image/svg+xml',
       '.ico': 'image/x-icon',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2',
+      '.ttf': 'font/ttf',
+      '.eot': 'font/eot'
     };
     const contentType = mimeTypes[extname] || 'application/octet-stream';
     
@@ -81,7 +68,7 @@ const server = http.createServer((req, res) => {
       console.log(`200 ${filePath}`);
     } else {
       // If file doesn't exist, try serving index.html (for SPA routing)
-      const indexPath = path.join(distFolder || serverRoot, 'index.html');
+      const indexPath = path.join(distFolder, 'index.html');
       if (fs.existsSync(indexPath)) {
         const content = fs.readFileSync(indexPath);
         res.writeHead(200, { 'Content-Type': 'text/html' });
