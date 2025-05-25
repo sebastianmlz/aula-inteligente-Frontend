@@ -45,7 +45,7 @@ export class GestionUsuariosComponent implements OnInit {
   usuarios: any[] = [];
 
 
-    // Propiedades para paginación
+  // Propiedades para paginación
   currentPage: number = 1;
   pageSize: number = 10;
   totalRecords: number = 0;
@@ -53,6 +53,7 @@ export class GestionUsuariosComponent implements OnInit {
   hasNextPage: boolean = false;
   hasPrevPage: boolean = false;
   loading: boolean = false;
+  
   editModalVisible: boolean = false;
   estudianteEditando: any = null;
   formEstudiante: any = {};
@@ -102,7 +103,7 @@ export class GestionUsuariosComponent implements OnInit {
     });
   }
 
-    // Nuevo método para manejar el cambio de página
+  // Nuevo método para manejar el cambio de página
   onPageChange(event: any): void {
     // Si usas p-paginator de PrimeNG
     if (event.page !== undefined) {
@@ -214,8 +215,9 @@ export class GestionUsuariosComponent implements OnInit {
       groups: [this.nuevoUsuario.groups]
     };
     this.authService.registrarUsuario(usuarioARegistrar).subscribe({
-      next: () => {
+      next: (res) => {
         this.noti.success('Usuario registrado', 'El usuario fue registrado correctamente.');
+        console.log("Respuesta del backend al registrar un usuario:", res);
         this.registroModalVisible = false;
         this.obtenerUsuarios();
       },

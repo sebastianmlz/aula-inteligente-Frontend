@@ -60,7 +60,7 @@ export class StudentService {
         return this.http.patch<Student>(`${this.baseUrl}${id}/`, data, { headers });
     }
 
-    obtenerPerfilAcademico(id: string): Observable<any> {
+    obtenerPerfilAcademico(id: number): Observable<any> {
         const token = localStorage.getItem('auth_access');
         if (!token) {
         throw new Error('No hay token de acceso. Inicie sesión nuevamente.');

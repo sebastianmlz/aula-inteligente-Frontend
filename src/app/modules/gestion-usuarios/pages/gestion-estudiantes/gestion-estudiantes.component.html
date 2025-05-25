@@ -1,0 +1,71 @@
+<div class="w-full bg-blue-800 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
+  <i class="pi pi-users text-2xl text-white mr-3"></i>
+  <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Estudiantes</h2>
+</div>
+
+<div class="bg-white rounded-xl overflow-visible shadow-md mt-3">
+  <p-table 
+    [value]="estudiantes" 
+    [rows]="pageSize" 
+    [paginator]="true" 
+    [lazy]="true"
+    [totalRecords]="totalRecords" 
+    (onPage)="onPageChange($event)"
+    [loading]="loading"
+    [rowsPerPageOptions]="[5, 10, 20, 50]"
+    [first]="(currentPage-1) * pageSize"
+    class="min-w-[700px]"
+  >
+    <ng-template pTemplate="header">
+      <tr class="bg-blue-800 text-white">
+        <th class="px-4 py-2">ID</th>
+        <th class="px-4 py-2">Nombre</th>
+        <th class="px-4 py-2">Correo</th>
+        <th class="px-4 py-2">Curso</th>
+        <th class="px-4 py-2 text-center">Perfil académico</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-estudiante>
+      <tr>
+        <td class="border px-4 py-2">{{ estudiante.student_id }}</td>
+        <td class="border px-4 py-2">{{ estudiante.full_name }}</td>
+        <td class="border px-4 py-2">{{ estudiante.email }}</td>
+        <td class="border px-4 py-2">{{ estudiante.current_course_name }}</td>
+        <td class="border px-4 py-2 text-center">
+          <button pButton icon="pi pi-eye" class="p-button-rounded p-button-info" (click)="verPerfilAcademico(estudiante)"></button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<!-- Modal de perfil académico -->
+<p-dialog [(visible)]="perfilModalVisible" [modal]="true" [closable]="true" [style]="{'border-radius': '1rem', overflow: 'hidden'}" [styleClass]="'w-[90vw] md:w-[40vw]'">
+  <ng-template pTemplate="header">
+    <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl">
+      <h2 class="text-xl font-bold text-white text-center">Perfil Académico</h2>
+    </div>
+  </ng-template>
+  <div class="p-6 bg-white/90 rounded-b-2xl" *ngIf="perfilAcademico">
+    <div class="mb-4">
+      <div class="font-semibold text-blue-900">ID:</div>
+      <div>{{ perfilAcademico.student_id }}</div>
+    </div>
+    <div class="mb-4">
+      <div class="font-semibold text-blue-900">Nombre:</div>
+      <div>{{ perfilAcademico.user?.first_name }} {{ perfilAcademico.user?.last_name }}</div>
+    </div>
+    <div class="mb-4">
+      <div class="font-semibold text-blue-900">Correo:</div>
+      <div>{{ perfilAcademico.user?.email }}</div>
+    </div>
+    <div class="mb-4">
+      <div class="font-semibold text-blue-900">Promedio actual:</div>
+      <div>{{ perfilAcademico.academic_metrics?.current_average }}</div>
+    </div>
+    <div class="mb-4">
+      <div class="font-semibold text-blue-900">Asistencia (%):</div>
+      <div>{{ perfilAcademico.academic_metrics?.attendance_percentage }}</div>
+    </div>
+  </div>
+</p-dialog>
