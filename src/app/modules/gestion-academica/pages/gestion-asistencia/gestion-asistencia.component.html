@@ -1,0 +1,324 @@
+<div class="p-4">
+  <div class="w-full bg-green-700 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
+    <i class="pi pi-calendar-plus text-2xl text-white mr-3"></i>
+    <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Asistencia</h2>
+  </div>
+  
+  <!-- Tabs para alternar entre Consulta y Registro -->
+  <p-tabView [(activeIndex)]="activeTab">
+    <!-- TAB 1: CONSULTA DE ASISTENCIAS -->
+    <p-tabPanel header="Consulta de Asistencias">
+      <div class="p-card p-4 mb-6 shadow-lg">
+        <form (ngSubmit)="buscar()" class="flex flex-wrap gap-4 items-end">
+          <!-- Filtro por curso -->
+          <div class="flex flex-col w-56">
+            <label class="font-semibold mb-1">Curso</label>
+            <p-dropdown
+              [options]="courses"
+              optionLabel="name"
+              optionValue="id"
+              [(ngModel)]="filtros.course"
+              name="course"
+              placeholder="Todos los cursos"
+              [showClear]="true"
+              class="w-full">
+            </p-dropdown>
+          </div>
+
+          <!-- Filtro por materia -->
+          <div class="flex flex-col w-56">
+            <label class="font-semibold mb-1">Materia</label>
+            <p-dropdown
+              [options]="subjects"
+              optionLabel="name"
+              optionValue="id"
+              [(ngModel)]="filtros.subject"
+              name="subject"
+              placeholder="Todas las materias"
+              [showClear]="true"
+              class="w-full">
+            </p-dropdown>
+          </div>
+
+          <!-- Filtro por estado -->
+          <div class="flex flex-col w-48">
+            <label class="font-semibold mb-1">Estado</label>
+            <p-dropdown
+              [options]="estadosAsistencia"
+              [(ngModel)]="filtros.status"
+              name="status"
+              placeholder="Todos los estados"
+              [showClear]="true"
+              class="w-full">
+            </p-dropdown>
+          </div>
+
+          <!-- Filtro por fecha desde -->
+          <div class="flex flex-col w-48">
+            <label class="font-semibold mb-1">Desde</label>
+            <p-calendar
+              [(ngModel)]="filtros.from_date"
+              name="from_date"
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              placeholder="Fecha inicio"
+              appendTo="body"
+              class="w-full">
+            </p-calendar>
+          </div>
+
+          <!-- Filtro por fecha hasta -->
+          <div class="flex flex-col w-48">
+            <label class="font-semibold mb-1">Hasta</label>
+            <p-calendar
+              [(ngModel)]="filtros.to_date"
+              name="to_date" 
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              placeholder="Fecha fin"
+              appendTo="body"
+              class="w-full">
+            </p-calendar>
+          </div>
+
+          <!-- Filtro por término de búsqueda -->
+          <div class="flex flex-col w-48">
+            <label class="font-semibold mb-1">Buscar</label>
+            <input
+              pInputText
+              [(ngModel)]="filtros.search"
+              name="search"
+              placeholder="Buscar..."
+              class="w-full" />
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="flex gap-2">
+            <button pButton type="submit" label="Buscar" icon="pi pi-search" class="p-button-primary"></button>
+            <button pButton type="button" label="Limpiar" icon="pi pi-times" 
+              class="p-button-secondary" (click)="limpiarFiltros()"></button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tabla de resultados - solo se muestra después de buscar -->
+      <div class="p-card shadow-lg" *ngIf="resultadosBusqueda">
+        <p-table
+          [value]="asistencias"
+          [rows]="pageSize"
+          [paginator]="true"
+          [lazy]="true"
+          [totalRecords]="totalRecords"
+          (onPage)="onPageChange($event)"
+          [loading]="loading"
+          [rowsPerPageOptions]="[5, 10, 20, 50]"
+          [first]="(currentPage-1) * pageSize"
+          class="min-w-[700px]">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Estudiante</th>
+              <th>Curso</th>
+              <th>Materia</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-asistencia>
+            <tr>
+              <td>{{ asistencia.student_name }}</td>
+              <td>{{ asistencia.course_name }}</td>
+              <td>{{ asistencia.subject_name }}</td>
+              <td>{{ asistencia.date | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <span [ngClass]="{
+                  'bg-green-100 text-green-800 px-2 py-1 rounded': asistencia.status === 'present',
+                  'bg-red-100 text-red-800 px-2 py-1 rounded': asistencia.status === 'absent',
+                  'bg-yellow-100 text-yellow-800 px-2 py-1 rounded': asistencia.status === 'late'
+                }">
+                  {{ asistencia.status === 'present' ? 'Presente' : 
+                     asistencia.status === 'absent' ? 'Ausente' : 'Tardanza' }}
+                </span>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="text-center text-gray-400">No hay registros de asistencia para mostrar.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Mensaje cuando no hay resultados de búsqueda -->
+      <div *ngIf="resultadosBusqueda && asistencias.length === 0" class="text-center my-8 text-gray-500">
+        <i class="pi pi-search text-4xl mb-3"></i>
+        <p class="text-lg">No se encontraron registros de asistencia con los filtros aplicados.</p>
+      </div>
+
+      <!-- Mensaje informativo inicial -->
+      <div *ngIf="!resultadosBusqueda" class="text-center my-12 text-gray-500">
+        <i class="pi pi-calendar text-5xl mb-4"></i>
+        <h3 class="text-xl font-semibold mb-2">Consulta de Asistencias</h3>
+        <p class="text-lg mb-4">Utiliza los filtros superiores para buscar registros de asistencia.</p>
+      </div>
+    </p-tabPanel>
+    
+    <!-- TAB 2: REGISTRO DE ASISTENCIAS -->
+    <p-tabPanel header="Registrar Asistencia">
+      <div class="p-card p-4 mb-6 shadow-lg">
+        <h3 class="text-xl font-bold mb-4 text-green-800">Nueva Asistencia</h3>
+        
+        <!-- Formulario para la búsqueda de estudiantes -->
+        <form (ngSubmit)="onBuscarClick()" class="flex flex-wrap items-end gap-4 p-4 pb-2">
+          <!-- Campo de búsqueda -->
+          <div class="flex-1 min-w-[300px]">
+            <label class="font-semibold text-gray-700 mb-1 block">
+              Buscar estudiante <i class="pi pi-search text-blue-700 ml-2"></i>
+            </label>
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-search text-blue-700"></i>
+              <input
+                pInputText
+                [(ngModel)]="filtrosA.search"
+                name="search"
+                placeholder="Nombre, ID, S6, P6, etc."
+                class="w-full rounded-lg border-2 border-blue-300 focus:border-blue-600"
+              />
+            </span>
+          </div>
+          
+          <button
+            pButton
+            type="submit"
+            label="Buscar"
+            icon="pi pi-search"
+            class="p-button-success px-5 h-12"
+          ></button>
+        </form>
+        
+        <!-- Campos adicionales para el registro de asistencia -->
+        <div class="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Nuevo campo: Curso -->
+          <div>
+            <label class="font-semibold text-gray-700 mb-1 block">
+              Curso <span class="text-red-500">*</span>
+            </label>
+            <p-dropdown
+              [options]="courses"
+              [(ngModel)]="filtrosRegistro.course"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Seleccione un curso"
+              [showClear]="true"
+              styleClass="w-full"
+            ></p-dropdown>
+          </div>
+          
+          <!-- Campo de Materia (existente) -->
+          <div>
+            <label class="font-semibold text-gray-700 mb-1 block">
+              Materia <span class="text-red-500">*</span>
+            </label>
+            <p-dropdown
+              [options]="subjects"
+              [(ngModel)]="filtrosRegistro.subject"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Seleccione una materia"
+              [showClear]="true"
+              styleClass="w-full"
+            ></p-dropdown>
+          </div>
+          
+          <!-- Campo de Fecha (existente) -->
+          <div>
+            <label class="font-semibold text-gray-700 mb-1 block">
+              Fecha <span class="text-red-500">*</span>
+            </label>
+            <p-calendar
+              [(ngModel)]="filtrosRegistro.date"
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              [maxDate]="fechaActual"
+              appendTo="body"
+              styleClass="w-full"
+            ></p-calendar>
+          </div>
+          
+          <!-- Campo de Periodo (existente) -->
+          <div>
+            <label class="font-semibold text-gray-700 mb-1 block">
+              Periodo <span class="text-red-500">*</span>
+            </label>
+            <p-dropdown
+              [options]="periods"
+              [(ngModel)]="filtrosRegistro.period"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Seleccione un periodo"
+              [showClear]="true"
+              styleClass="w-full"
+            ></p-dropdown>
+          </div>
+        </div>
+        
+        <!-- Tabla de estudiantes -->
+        <div class="mt-4" *ngIf="estudiantes.length > 0">
+          <p-table [value]="estudiantes" [loading]="loadingEstudiantes">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th class="text-center">Acción</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-estudiante>
+              <tr>
+                <td>{{ estudiante.student_id }}</td>
+                <td>{{ estudiante.full_name }}</td>
+                <td class="text-center">
+                  <!-- Si no está registrado, mostrar botones -->
+                  <div *ngIf="!estaRegistrado(estudiante)" class="flex justify-center gap-2">
+                    <button pButton type="button" 
+                      icon="pi pi-check" 
+                      class="p-button-success p-button-sm"
+                      pTooltip="Presente"
+                      tooltipPosition="top"
+                      (click)="registrarAsistencia(estudiante, 'present')"></button>
+                      
+                    <button pButton type="button" 
+                      icon="pi pi-clock" 
+                      class="p-button-warning p-button-sm"
+                      pTooltip="Tardanza"
+                      tooltipPosition="top"
+                      (click)="registrarAsistencia(estudiante, 'late')"></button>
+                      
+                    <button pButton type="button" 
+                      icon="pi pi-times" 
+                      class="p-button-danger p-button-sm"
+                      pTooltip="Ausente"
+                      tooltipPosition="top"
+                      (click)="registrarAsistencia(estudiante, 'absent')"></button>
+                  </div>
+                  
+                  <!-- Si ya está registrado, mostrar mensaje -->
+                  <span *ngIf="estaRegistrado(estudiante)" class="text-green-600 font-semibold">
+                    <i class="pi pi-check-circle mr-2"></i> Registrado
+                  </span>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="3" class="text-center py-4">
+                  No hay estudiantes disponibles.
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
+    </p-tabPanel>
+  </p-tabView>
+  
+</div>

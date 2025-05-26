@@ -1,10 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { StudentService } from '../../services/student.service';
 import { NotificacionService } from '../../../autenticacion/services/notificacion.service';
+import { FormsModule } from '@angular/forms';
+import { TabViewModule } from 'primeng/tabview';
+import { CalificacionService } from '../../../gestion-academica/services/calificacion.service';
 
 @Component({
   selector: 'app-gestion-estudiantes',
@@ -15,12 +18,13 @@ import { NotificacionService } from '../../../autenticacion/services/notificacio
     CommonModule,
     TableModule,
     DialogModule,
-    ButtonModule
+    ButtonModule,
+    FormsModule,
+    TabViewModule
   ]
 })
-export class GestionEstudiantesComponent {
-
-      // Propiedades para paginación
+export class GestionEstudiantesComponent implements OnInit {
+  // Propiedades para paginación
   currentPage: number = 1;
   pageSize: number = 10;
   totalRecords: number = 0;
@@ -34,10 +38,22 @@ export class GestionEstudiantesComponent {
 
   perfilModalVisible = false;
   perfilAcademico: any = null;
+  
+  // Propiedades básicas
+  activeTabIndex: number = 0;
+
+  filtros: any = {
+    search: ''
+  };
+
+  // Añade esta nueva propiedad para el historial de calificaciones
+  historialCalificaciones: any = {};
+  loadingHistorial: boolean = false;
 
   constructor(
     private studentService: StudentService,
-    private noti: NotificacionService // Inyecta el servicio
+    private noti: NotificacionService,
+    private calificacionService: CalificacionService  // Añade esta línea
   ) {}
 
   ngOnInit(): void {
@@ -45,17 +61,23 @@ export class GestionEstudiantesComponent {
   }
 
   obtenerEstudiantes(page: number = 1, pageSize: number = 10): void {
-    this.studentService.listarEstudiantes(page, this.pageSize, this.gradoSeleccionado || undefined)
-      .subscribe({
-        next: (res) => {
-          this.estudiantes = res.items;
-          this.totalRecords = res.total;
-        },
-        error: (err) => {
-          this.noti.error('Error', 'Error al obtener estudiantes');
-          console.error('Error al obtener estudiantes:', err);
-        }
-      });
+    this.loading = true;
+    this.studentService.listarEstudiantes(
+        page,
+        pageSize,
+        this.filtros.search?.trim() || ''
+    ).subscribe({
+      next: (res) => {
+        this.estudiantes = res.items;
+        this.totalRecords = res.total;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.noti.error('Error', 'Error al obtener estudiantes');
+        this.loading = false;
+        console.error('Error al obtener estudiantes:', err);
+      }
+    });
   }
 
   // Llama a este método cuando cambie el grado o la página
@@ -65,30 +87,31 @@ export class GestionEstudiantesComponent {
     this.obtenerEstudiantes();
   }
 
-    // Nuevo método para manejar el cambio de página
+  // Nuevo método para manejar el cambio de página
   onPageChange(event: any): void {
-    // Si usas p-paginator de PrimeNG
     if (event.page !== undefined) {
-      // PrimeNG paginator usa base 0 (primera página = 0)
       this.currentPage = event.page + 1;
       this.pageSize = event.rows;
-    } 
-    // Si usas p-table con paginación integrada
-    else if (event.first !== undefined) {
-      // Calcular página basado en first y rows
+    } else if (event.first !== undefined) {
       this.currentPage = Math.floor(event.first / event.rows) + 1;
       this.pageSize = event.rows;
     }
-    
-    console.log(`Cambiando a página ${this.currentPage}, tamaño: ${this.pageSize}`);
     this.obtenerEstudiantes(this.currentPage, this.pageSize);
   }
 
+  // Modifica el método verPerfilAcademico para cargar también las calificaciones
   verPerfilAcademico(estudiante: any) {
+    this.activeTabIndex = 0;
+    this.perfilAcademico = null;
+    this.historialCalificaciones = {};
+    
     this.studentService.obtenerPerfilAcademico(estudiante.user_id).subscribe({
       next: (res) => {
         this.perfilAcademico = res;
         this.perfilModalVisible = true;
+        
+        // Una vez que tenemos el perfil, cargamos sus calificaciones
+        this.cargarHistorialCalificaciones(estudiante.user_id);
       },
       error: (err) => {
         this.noti.error('Error', 'Error al obtener perfil académico');
@@ -97,4 +120,38 @@ export class GestionEstudiantesComponent {
     });
   }
 
+  // Método para cargar las calificaciones
+  cargarHistorialCalificaciones(userId: number) {
+    if (!userId) return;
+    
+    this.loadingHistorial = true;
+    console.log('Obteniendo historial para usuario ID:', userId);
+    
+    this.calificacionService.obtenerCalificacionesEstudiante(userId).subscribe({
+      next: (res: any) => {
+        this.historialCalificaciones = res || {};
+        console.log('Datos recibidos:', this.historialCalificaciones);
+        this.loadingHistorial = false;
+      },
+      error: (err) => {
+        console.error('Error al obtener historial de calificaciones:', err);
+        this.noti.error('Error', 'No se pudo cargar el historial de calificaciones del estudiante');
+        this.historialCalificaciones = {};
+        this.loadingHistorial = false;
+      }
+    });
+  }
+
+  onBuscarClick() {
+    this.currentPage = 1;
+    this.obtenerEstudiantes(this.currentPage, this.pageSize);
+  }
+
+  // Método auxiliar para obtener las claves del objeto historialCalificaciones
+  getMateriasKeys(): string[] {
+    if (!this.historialCalificaciones || typeof this.historialCalificaciones !== 'object') {
+      return [];
+    }
+    return Object.keys(this.historialCalificaciones);
+  }
 }

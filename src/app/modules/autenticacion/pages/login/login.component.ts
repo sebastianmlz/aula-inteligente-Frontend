@@ -62,10 +62,11 @@ export class LoginComponent implements OnInit {
 
         // Redireccionar según el rol
         const role = response.roles?.[0] || '';
-        console.log("rolll",role);
-        if (role === 'Administrator' || role === 'admin') {
-          this.router.navigate(['/main']);
-        } else if (role === 'customer') {
+        console.log("rolll", role);
+        // Redirige a /main para todos los roles conocidos
+        if (
+          ['Administrator', 'admin', 'Teacher', 'Parent', 'Student'].includes(role)
+        ) {
           this.router.navigate(['/main']);
         } else {
           this.router.navigate(['/']);

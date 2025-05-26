@@ -46,4 +46,16 @@ export class SidebarComponent {
   cerrarSesion() {
     this.authService.logout();
   }
+
+  getRoleName(): string {
+    const role = this.authService.getRole();
+    switch(role) {
+      case 'Administrator': return 'Administrador';
+      case 'admin': return 'Administrador';
+      case 'Teacher': return 'Profesor';
+      case 'Parent': return 'Padre/Tutor';
+      case 'Student': return 'Estudiante';
+      default: return 'Usuario';
+    }
+  }
 }

@@ -1,0 +1,225 @@
+<div class="p-4">
+  <div class="w-full bg-blue-800 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
+    <i class="pi pi-users text-2xl text-white mr-3"></i>
+    <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">
+      <!-- Título dinámico según el rol -->
+      {{ isAdmin ? 'Gestión de Asignaciones' : 'Mis Clases' }}
+    </h2>
+    <!-- Solo mostrar botón de crear para administradores -->
+    <button *ngIf="isAdmin" pButton type="button" icon="pi pi-plus" 
+      class="p-button-success ml-3" (click)="abrirModalCrear()"></button>
+  </div>
+
+  <div class="p-card p-4 mb-6 shadow-lg">
+    <form (ngSubmit)="buscar()" class="flex flex-wrap gap-4 items-end">
+      <!-- Solo mostrar selector de docente para administradores -->
+      <div *ngIf="isAdmin" class="flex flex-col w-56">
+        <label class="font-semibold mb-1">Docente</label>
+        <p-dropdown
+          [options]="teachers"
+          optionLabel="user_full_name"
+          optionValue="user_id"
+          [(ngModel)]="filtros.teacher"
+          name="teacher"
+          placeholder="Todos los docentes"
+          [showClear]="true"
+          class="w-full">
+        </p-dropdown>
+      </div>
+      <div class="flex flex-col w-56">
+        <label class="font-semibold mb-1">Materia</label>
+        <p-dropdown
+          [options]="subjects"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="filtros.subject"
+          name="subject"
+          placeholder="Todas las materias"
+          [showClear]="true"
+          class="w-full">
+        </p-dropdown>
+      </div>
+      <div class="flex flex-col w-56">
+        <label class="font-semibold mb-1">Curso</label>
+        <p-dropdown
+          [options]="courses"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="filtros.course"
+          name="course"
+          placeholder="Todos los cursos"
+          [showClear]="true"
+          class="w-full">
+        </p-dropdown>
+      </div>
+      <div class="flex flex-col w-48">
+        <label class="font-semibold mb-1">Buscar</label>
+        <input
+          pInputText
+          [(ngModel)]="filtros.search"
+          name="search"
+          placeholder="Buscar..."
+          class="w-full" />
+      </div>
+      <div>
+        <button pButton type="submit" label="Buscar" icon="pi pi-search" class="p-button-primary"></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="p-card shadow-lg">
+    <p-table
+      [value]="asignaciones"
+      [rows]="pageSize"
+      [paginator]="true"
+      [lazy]="true"
+      [totalRecords]="totalRecords"
+      (onPage)="onPageChange($event)"
+      [loading]="loading"
+      [rowsPerPageOptions]="[5, 10, 20, 50]"
+      [first]="(currentPage-1) * pageSize"
+      class="min-w-[700px]">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Docente</th>
+          <th>Materia</th>
+          <th>Curso</th>
+          <th>Periodo</th>
+          <!-- Columna de acciones solo si es administrador -->
+          <th *ngIf="isAdmin">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-a>
+        <tr>
+          <td>{{ a.teacher_details?.full_name || a.teacher?.details?.full_name }}</td>
+          <td>{{ a.subject_name }}</td>
+          <td>{{ a.course_name }}</td>
+          <td>{{ a.period_name }}</td>
+          <!-- Botones de acciones solo para administradores -->
+          <td *ngIf="isAdmin">
+            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-info p-button-sm mr-2"
+              (click)="abrirModalEditar(a)"></button>
+            <button pButton icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-sm"
+              (click)="eliminarAsignacion(a)"></button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5" class="text-center text-gray-400">No hay asignaciones para mostrar.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Solo incluir modales si el usuario es administrador -->
+  <ng-container *ngIf="isAdmin">
+    <!-- Modal de creación -->
+    <p-dialog [(visible)]="crearModalVisible" [modal]="true" [closable]="true" [style]="{'width':'430px'}">
+      <ng-template pTemplate="header">
+        <span class="font-bold">Nueva Asignación</span>
+      </ng-template>
+      <form class="flex flex-col gap-4 py-2 px-1" (ngSubmit)="crearAsignacion()" #asignacionForm="ngForm">
+        <p-dropdown
+          [options]="teachers"
+          optionLabel="user_full_name"
+          optionValue="user_id"
+          [(ngModel)]="nuevaAsignacion.teacher"
+          name="teacher"
+          placeholder="Seleccione docente"
+          required
+          class="w-full">
+        </p-dropdown>
+        <p-dropdown
+          [options]="subjects"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="nuevaAsignacion.subject"
+          name="subject"
+          placeholder="Seleccione materia"
+          required
+          class="w-full">
+        </p-dropdown>
+        <p-dropdown
+          [options]="courses"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="nuevaAsignacion.course"
+          name="course"
+          placeholder="Seleccione curso"
+          required
+          class="w-full">
+        </p-dropdown>
+        <input
+          pInputText
+          [(ngModel)]="nuevaAsignacion.period"
+          name="period"
+          placeholder="ID de periodo"
+          required
+          class="w-full" />
+        <div class="flex items-center gap-2">
+          <label class="font-semibold">¿Es primaria?</label>
+          <p-checkbox [(ngModel)]="nuevaAsignacion.is_primary" name="is_primary" binary="true"></p-checkbox>
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button pButton type="button" label="Cancelar" class="p-button-secondary" (click)="crearModalVisible=false"></button>
+          <button pButton type="submit" label="Guardar" class="p-button-success"></button>
+        </div>
+      </form>
+    </p-dialog>
+
+    <!-- Modal de edición -->
+    <p-dialog [(visible)]="editarModalVisible" [modal]="true" [closable]="true" [style]="{'width':'430px'}">
+      <ng-template pTemplate="header">
+        <span class="font-bold">Editar Asignación</span>
+      </ng-template>
+      <form class="flex flex-col gap-4 py-2 px-1" (ngSubmit)="editarAsignacion()" *ngIf="asignacionEditando">
+        <p-dropdown
+          [options]="teachers"
+          optionLabel="user_full_name"
+          optionValue="user_id"
+          [(ngModel)]="asignacionEditando.teacher"
+          name="edit_teacher"
+          placeholder="Seleccione docente"
+          required
+          class="w-full">
+        </p-dropdown>
+        <p-dropdown
+          [options]="subjects"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="asignacionEditando.subject"
+          name="edit_subject"
+          placeholder="Seleccione materia"
+          required
+          class="w-full">
+        </p-dropdown>
+        <p-dropdown
+          [options]="courses"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="asignacionEditando.course"
+          name="edit_course"
+          placeholder="Seleccione curso"
+          required
+          class="w-full">
+        </p-dropdown>
+        <input
+          pInputText
+          [(ngModel)]="asignacionEditando.period"
+          name="edit_period"
+          placeholder="ID de periodo"
+          required
+          class="w-full" />
+        <div class="flex items-center gap-2">
+          <label class="font-semibold">¿Es primaria?</label>
+          <p-checkbox [(ngModel)]="asignacionEditando.is_primary" name="edit_is_primary" binary="true"></p-checkbox>
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button pButton type="button" label="Cancelar" class="p-button-secondary" (click)="editarModalVisible=false"></button>
+          <button pButton type="submit" label="Guardar" class="p-button-success"></button>
+        </div>
+      </form>
+    </p-dialog>
+  </ng-container>
+</div>

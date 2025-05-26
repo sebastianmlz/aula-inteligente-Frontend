@@ -4,12 +4,37 @@
 </div>
 
 <div class="bg-white rounded-xl overflow-visible shadow-md mt-3">
+  <!-- Buscador mejorado -->
+  <form (ngSubmit)="onBuscarClick()" class="flex items-end gap-4 p-4 pb-2">
+    <label class="font-semibold text-gray-700 mb-1 whitespace-nowrap flex items-center h-12">
+      Buscar estudiante <i class="pi pi-search text-blue-700 ml-2"></i>
+    </label>
+    <span class="p-input-icon-left flex-1">
+      <i class="pi pi-search text-blue-700"></i>
+      <input
+        pInputText
+        [(ngModel)]="filtros.search"
+        name="search"
+        placeholder="Nombre, ID, S6, P6, etc."
+        class="w-full rounded-lg border-2 border-blue-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm pl-10 py-2 text-gray-800 placeholder-gray-400"
+      />
+    </span>
+    <button
+      pButton
+      type="submit"
+      label="Buscar"
+      icon="pi pi-search"
+      class="p-button-success px-5 h-12"
+    ></button>
+  </form>
+
+  <!-- Tabla de estudiantes -->
   <p-table 
     [value]="estudiantes" 
-    [rows]="pageSize" 
-    [paginator]="true" 
+    [rows]="pageSize"
+    [paginator]="true"
     [lazy]="true"
-    [totalRecords]="totalRecords" 
+    [totalRecords]="totalRecords"
     (onPage)="onPageChange($event)"
     [loading]="loading"
     [rowsPerPageOptions]="[5, 10, 20, 50]"
@@ -39,33 +64,117 @@
   </p-table>
 </div>
 
-<!-- Modal de perfil académico -->
-<p-dialog [(visible)]="perfilModalVisible" [modal]="true" [closable]="true" [style]="{'border-radius': '1rem', overflow: 'hidden'}" [styleClass]="'w-[90vw] md:w-[40vw]'">
+<!-- Modal de perfil académico - Solo información general -->
+<p-dialog [(visible)]="perfilModalVisible" [modal]="true" [closable]="true" 
+    [style]="{'border-radius': '1rem', 'overflow': 'hidden', 'width': '90vw', 'max-width': '800px'}" 
+    [styleClass]="'w-[90vw] md:w-[80vw]'">
   <ng-template pTemplate="header">
-    <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl">
-      <h2 class="text-xl font-bold text-white text-center">Perfil Académico</h2>
+    <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl w-full">
+      <h2 class="text-xl font-bold text-white text-center">
+        Perfil Académico - {{ perfilAcademico?.user?.first_name }} {{ perfilAcademico?.user?.last_name }}
+      </h2>
     </div>
   </ng-template>
+  
   <div class="p-6 bg-white/90 rounded-b-2xl" *ngIf="perfilAcademico">
-    <div class="mb-4">
-      <div class="font-semibold text-blue-900">ID:</div>
-      <div>{{ perfilAcademico.student_id }}</div>
-    </div>
-    <div class="mb-4">
-      <div class="font-semibold text-blue-900">Nombre:</div>
-      <div>{{ perfilAcademico.user?.first_name }} {{ perfilAcademico.user?.last_name }}</div>
-    </div>
-    <div class="mb-4">
-      <div class="font-semibold text-blue-900">Correo:</div>
-      <div>{{ perfilAcademico.user?.email }}</div>
-    </div>
-    <div class="mb-4">
-      <div class="font-semibold text-blue-900">Promedio actual:</div>
-      <div>{{ perfilAcademico.academic_metrics?.current_average }}</div>
-    </div>
-    <div class="mb-4">
-      <div class="font-semibold text-blue-900">Asistencia (%):</div>
-      <div>{{ perfilAcademico.academic_metrics?.attendance_percentage }}</div>
+    <p-tabView [(activeIndex)]="activeTabIndex">
+      <!-- Información general -->
+      <p-tabPanel header="Información General">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">ID:</div>
+            <div>{{ perfilAcademico.student_id }}</div>
+          </div>
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">Nombre:</div>
+            <div>{{ perfilAcademico.user?.first_name }} {{ perfilAcademico.user?.last_name }}</div>
+          </div>
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">Correo:</div>
+            <div>{{ perfilAcademico.user?.email }}</div>
+          </div>
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">Curso actual:</div>
+            <div>{{ perfilAcademico.current_course_name || 'No asignado' }}</div>
+          </div>
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">Promedio actual:</div>
+            <div class="flex items-center">
+              <span class="px-2 py-1 rounded-full text-white mr-2" 
+                    [ngClass]="{
+                      'bg-red-500': perfilAcademico.current_average < 51,
+                      'bg-yellow-500': perfilAcademico.current_average >= 51 && perfilAcademico.current_average < 71,
+                      'bg-green-500': perfilAcademico.current_average >= 71
+                    }">
+                {{ perfilAcademico.current_average || '0' }}
+              </span>
+              <span class="text-sm text-gray-500">sobre 100</span>
+            </div>
+          </div>
+          <div class="mb-4">
+            <div class="font-semibold text-blue-900">Asistencia (%):</div>
+            <div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="bg-blue-600 h-2.5 rounded-full" [style.width]="(perfilAcademico.attendance_percentage || 0) + '%'"></div>
+              </div>
+              <span class="text-sm">{{ perfilAcademico.attendance_percentage || '0' }}%</span>
+            </div>
+          </div>
+        </div>
+      </p-tabPanel>
+      
+      <!-- Historial de Calificaciones -->
+      <p-tabPanel header="Historial de Calificaciones">
+        <div *ngIf="loadingHistorial" class="flex justify-center p-4">
+          <i class="pi pi-spin pi-spinner text-blue-600 text-4xl"></i>
+        </div>
+
+        <div *ngIf="!loadingHistorial && (!historialCalificaciones || getMateriasKeys().length === 0)" class="text-center p-4 text-gray-500">
+          No hay calificaciones registradas para este estudiante.
+        </div>
+
+        <!-- Implementación simple para mostrar directamente los datos -->
+        <div *ngIf="!loadingHistorial && historialCalificaciones" class="mb-4">
+          <!-- Iterar por cada materia -->
+          <div *ngFor="let materiaKey of getMateriasKeys()" class="mb-6">
+            <div class="bg-blue-100 p-3 rounded-t-lg font-bold">
+              {{ materiaKey }}
+            </div>
+            
+            <div class="border border-blue-100 rounded-b-lg overflow-hidden">
+              <table class="min-w-full bg-white">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left">Descripción</th>
+                    <th class="px-4 py-2 text-center">Nota</th>
+                    <th class="px-4 py-2 text-center">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let nota of historialCalificaciones[materiaKey]" class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ nota.comment || 'Sin descripción' }}</td>
+                    <td class="px-4 py-2 text-center">
+                      <span class="px-2 py-1 rounded-full text-white" 
+                            [ngClass]="{
+                              'bg-red-500': nota.value < 51,
+                              'bg-yellow-500': nota.value >= 51 && nota.value < 71,
+                              'bg-green-500': nota.value >= 71
+                            }">
+                        {{ nota.value }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 text-center">{{ nota.created_at | date:'dd/MM/yyyy' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </p-tabPanel>
+    </p-tabView>
+    
+    <div class="flex justify-end mt-4">
+      <button pButton type="button" label="Cerrar" class="p-button-secondary" (click)="perfilModalVisible=false"></button>
     </div>
   </div>
 </p-dialog>

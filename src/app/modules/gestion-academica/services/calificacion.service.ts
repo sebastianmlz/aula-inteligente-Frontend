@@ -1,17 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
-export class AsignacionService {
-  private baseUrl = environment.apiUrl + 'academic/teacher-assignments/';
+export class CalificacionService {
+  private baseUrl = environment.apiUrl + 'academic/grades/';
 
   constructor(private http: HttpClient) {}
 
-  listarAsignaciones(
+  listarCalificaciones(
     filtros: any = {},
     page: number = 1,
     pageSize: number = 10
@@ -37,10 +38,25 @@ export class AsignacionService {
     return this.http.get<any>(this.baseUrl, { headers, params });
   }
 
-  crearAsignacion(data: any): Observable<any> {
+  obtenerCalificacionesEstudiante(studentId: number): Observable<any> {
     const token = localStorage.getItem('auth_access');
     if (!token) throw new Error('No hay token de acceso. Inicie sesión nuevamente.');
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    return this.http.post<any>(this.baseUrl, data, { headers });
+    
+    // Usar el parámetro que espera la API según la documentación
+    let params = new HttpParams().set('student_id', studentId.toString());
+    
+    // Loguear la URL y parámetros para debug
+    const url = `${environment.apiUrl}academic/grades/student_grades/`;
+    console.log(`Llamando a API: ${url} con student_id=${studentId}`);
+    
+    return this.http.get<any>(url, { headers, params });
+  }
+
+  obtenerDetalleCalificacion(id: number): Observable<any> {
+    const token = localStorage.getItem('auth_access');
+    if (!token) throw new Error('No hay token de acceso. Inicie sesión nuevamente.');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    return this.http.get<any>(`${this.baseUrl}${id}/`, { headers });
   }
 }

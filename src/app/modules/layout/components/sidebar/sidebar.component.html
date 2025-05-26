@@ -20,38 +20,44 @@
             <ng-container *ngIf="authService.isAdmin()">
               <li class="pt-1">
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-usuarios" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-users"></i>
+                  <i class="pi pi-users text-blue-700"></i>
                   <span>Gestionar usuarios</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-cursos" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-book"></i>
+                  <i class="pi pi-bookmark text-green-700"></i>
                   <span>Gestionar cursos</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-materias" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-book"></i>
+                  <i class="pi pi-book text-orange-700"></i>
                   <span>Gestionar materias</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-profesores" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-user"></i>
+                  <i class="pi pi-id-card text-indigo-700"></i>
                   <span>Gestionar profesores</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-estudiantes" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-user"></i>
+                  <i class="pi pi-user-plus text-cyan-700"></i>
                   <span>Gestionar estudiantes</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/gestion-asignaciones" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-user"></i>
+                  <i class="pi pi-calendar text-purple-700"></i>
                   <span>Gestionar Asignaciones</span>
+                </a>
+              </li>
+              <li>
+                <a (click)="closeCallback($event)" routerLink="/admin/gestion-calificaciones" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-chart-bar text-yellow-700"></i>
+                  <span>Gestionar Calificaciones</span>
                 </a>
               </li>
               <!-- <li>
@@ -62,13 +68,13 @@
               </li> -->
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/bitacora" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-book"></i>
+                  <i class="pi pi-history text-blue-800"></i>
                   <span>Bitácora</span>
                 </a>
               </li>
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/reportes" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-file"></i>
+                  <i class="pi pi-file-pdf text-red-700"></i>
                   <span>Reportes</span>
                 </a>
               </li>
@@ -80,50 +86,55 @@
               </li> -->
               <li>
                 <a (click)="closeCallback($event)" routerLink="/admin/backup-restore" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-database"></i>
+                  <i class="pi pi-database text-teal-700"></i>
                   <span>Backup y Restauración</span>
                 </a>
               </li>
             </ng-container>
 
-            <!-- CUSTOMER -->
-            <!-- <ng-container *ngIf="authService.isCustomer()">
-              <li>
-                <a (click)="closeCallback($event)" routerLink="/customer/historial-pedidos" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-history"></i>
-                  <span>Historial de pedidos</span>
+            <!-- PROFESOR -->
+            <ng-container *ngIf="authService.getRole() === 'Teacher'">
+              <li class="pt-1">
+                <a (click)="closeCallback($event)" routerLink="profesor/mis-clases" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-book text-blue-700"></i>
+                  <span>Mis Clases</span>
                 </a>
               </li>
               <li>
-                <a (click)="closeCallback($event)" routerLink="/productos" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-tags"></i>
-                  <span>Ver productos</span>
+                <a (click)="closeCallback($event)" routerLink="profesor/asistencias" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-calendar-plus text-green-700"></i>
+                  <span>Asistencias</span>
                 </a>
               </li>
               <li>
-                <a (click)="closeCallback($event)" routerLink="customer/carrito" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-shopping-cart"></i>
-                  <span>Ver carrito</span>
-                </a>
-              </li> -->
-              <!-- <li>
-                <a (click)="closeCallback($event)" routerLink="/customer/seguimiento" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-truck"></i>
-                  <span>Seguimiento de pedido</span>
+                <a (click)="closeCallback($event)" routerLink="profesor/calificaciones" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-chart-bar text-orange-700"></i>
+                  <span>Gestionar Calificaciones</span>
                 </a>
               </li>
               <li>
-                <a (click)="closeCallback($event)" routerLink="/customer/soporte" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                  <i class="pi pi-question-circle"></i>
-                  <span>Soporte</span>
+                <a (click)="closeCallback($event)" routerLink="profesor/lista-estudiantes" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-users text-indigo-700"></i>
+                  <span>Lista de Estudiantes</span>
                 </a>
-              </li> -->
-            <!-- </ng-container> -->
+              </li>
+              <li>
+                <a (click)="closeCallback($event)" routerLink="profesor/materias" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
+                  <i class="pi pi-list text-purple-700"></i>
+                  <span>Materias Asignadas</span>
+                </a>
+              </li>
+            </ng-container>
+
+            <!--TUTOR-->
+
+            <!--ALUMNO-->
+
 
             <!-- AMBOS -->
             <li>
               <a (click)="closeCallback($event)" routerLink="/configuracion" class="flex items-center gap-2 p-3 rounded-lg hover:bg-blue-100 cursor-pointer">
-                <i class="pi pi-cog"></i>
+                <i class="pi pi-cog text-gray-700"></i>
                 <span>Configuración</span>
               </a>
             </li>
@@ -144,7 +155,7 @@
             <p-avatar icon="pi pi-user" shape="circle" />
             <div>
               <p class="font-semibold">
-                {{ authService.isAdmin() ? 'Administrador' : 'Cliente' }}
+                {{ getRoleName() }}
               </p>
               <p class="text-sm text-gray-500">{{user?.first_name}} {{user?.last_name}}</p>
             </div>

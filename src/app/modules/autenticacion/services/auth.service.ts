@@ -107,4 +107,14 @@ export class AuthService {
             { headers }
         );
     }
+
+    getCurrentUserId(): string {
+        const userData = this.getUser();
+        return userData ? userData.id.toString() : '';
+    }
+
+    isTeacher(): boolean {
+        const userData = this.getUser();
+        return userData && userData.groups && userData.groups.includes(2);
+    }
 }
