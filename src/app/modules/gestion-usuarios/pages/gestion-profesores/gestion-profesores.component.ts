@@ -174,31 +174,67 @@ export class GestionProfesoresComponent implements OnInit {
   }
 
   abrirModalEditar(profesor: any) {
-    const userId = profesor.user_id;
+    console.log('Profesor a editar:', profesor); // Para depuración
     
-    // Guardar el email original para compararlo después
-    this.originalEmail = profesor.email;
-    
-    this.profesorEditando = {
-      user_id: userId,
-      teacher_id: profesor.teacher_id,
-      user: {
-        first_name: profesor.full_name.split(' ')[0],
-        last_name: profesor.full_name.split(' ').slice(1).join(' '),
-        email: profesor.email,
-        phone_number: "70000000",
-        address: "Sin dirección",
-        date_of_birth: "1990-01-01",
-        groups: [2]
+    // Obtener información detallada del profesor
+    this.teacherService.obtenerProfesor(profesor.user_id).subscribe({
+      next: (detalleProfesor) => {
+        console.log('Detalle del profesor:', detalleProfesor);
+        
+        // Guardar el email original para compararlo después
+        this.originalEmail = detalleProfesor.user?.email || profesor.email || '';
+        
+        // Crear el objeto con los datos completos del profesor
+        this.profesorEditando = {
+          user_id: profesor.user_id,
+          teacher_id: profesor.teacher_id,
+          user: {
+            first_name: detalleProfesor.user?.first_name || profesor.user_full_name?.split(' ')[0] || '',
+            last_name: detalleProfesor.user?.last_name || 
+                      (profesor.user_full_name ? profesor.user_full_name.split(' ').slice(1).join(' ') : ''),
+            email: detalleProfesor.user?.email || profesor.email || '',
+            phone_number: detalleProfesor.user?.phone_number || "70000000",
+            address: detalleProfesor.user?.address || "Sin dirección",
+            date_of_birth: detalleProfesor.user?.date_of_birth || "1990-01-01",
+            groups: [2]
+          },
+          specialization: detalleProfesor.specialization || profesor.specialization || '',
+          qualification: detalleProfesor.qualification || profesor.qualification || '',
+          years_of_experience: detalleProfesor.years_of_experience || profesor.years_of_experience || 0,
+          date_joined: detalleProfesor.date_joined || new Date().toISOString().slice(0, 10),
+          employment_status: detalleProfesor.employment_status || profesor.employment_status || 'active'
+        };
+        
+        // Abrir el modal
+        this.editarModalVisible = true;
       },
-      specialization: profesor.specialization || '',
-      qualification: profesor.qualification || '',
-      years_of_experience: profesor.years_of_experience || 0,
-      date_joined: new Date().toISOString().slice(0, 10),
-      employment_status: profesor.employment_status || 'active'
-    };
-    
-    this.editarModalVisible = true;
+      error: (err) => {
+        console.error('Error al obtener detalles del profesor:', err);
+        this.noti.error('Error', 'No se pudieron cargar los datos del profesor');
+        
+        // Intenta abrir el modal con los datos disponibles en la tabla
+        this.profesorEditando = {
+          user_id: profesor.user_id,
+          teacher_id: profesor.teacher_id,
+          user: {
+            first_name: profesor.user_full_name?.split(' ')[0] || '',
+            last_name: profesor.user_full_name?.split(' ').slice(1).join(' ') || '',
+            email: profesor.email || '',
+            phone_number: "70000000",
+            address: "Sin dirección",
+            date_of_birth: "1990-01-01",
+            groups: [2]
+          },
+          specialization: profesor.specialization || '',
+          qualification: profesor.qualification || '',
+          years_of_experience: profesor.years_of_experience || 0,
+          date_joined: new Date().toISOString().slice(0, 10),
+          employment_status: profesor.employment_status || 'active'
+        };
+        
+        this.editarModalVisible = true;
+      }
+    });
   }
 
   editarProfesor() {

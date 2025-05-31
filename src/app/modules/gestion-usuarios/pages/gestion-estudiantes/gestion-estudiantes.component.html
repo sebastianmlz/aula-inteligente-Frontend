@@ -1,6 +1,7 @@
 <div class="w-full bg-blue-800 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
   <i class="pi pi-users text-2xl text-white mr-3"></i>
   <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Estudiantes</h2>
+  <button pButton type="button" label="Crear estudiante" icon="pi pi-plus" class="p-button-success ml-3" (click)="abrirModalCrear()"></button>
 </div>
 
 <div class="bg-white rounded-xl overflow-visible shadow-md mt-3">
@@ -10,7 +11,6 @@
       Buscar estudiante <i class="pi pi-search text-blue-700 ml-2"></i>
     </label>
     <span class="p-input-icon-left flex-1">
-      <i class="pi pi-search text-blue-700"></i>
       <input
         pInputText
         [(ngModel)]="filtros.search"
@@ -48,6 +48,8 @@
         <th class="px-4 py-2">Correo</th>
         <th class="px-4 py-2">Curso</th>
         <th class="px-4 py-2 text-center">Perfil académico</th>
+        <th class="px-4 py-2 text-center">Matriculación</th>
+        <th class="px-4 py-2 text-center">Acciones</th> <!-- Nueva columna -->
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-estudiante>
@@ -58,6 +60,22 @@
         <td class="border px-4 py-2">{{ estudiante.current_course_name }}</td>
         <td class="border px-4 py-2 text-center">
           <button pButton icon="pi pi-eye" class="p-button-rounded p-button-info" (click)="verPerfilAcademico(estudiante)"></button>
+        </td>
+        <td class="border px-4 py-2 text-center">
+          <button pButton icon="pi pi-plus-circle" class="p-button-rounded p-button-success" 
+            pTooltip="Matricular en materia" tooltipPosition="top"
+            (click)="abrirModalMatriculacion(estudiante)"></button>
+        </td>
+        <!-- Nuevos botones de acciones -->
+        <td class="border px-4 py-2 text-center">
+          <div class="flex justify-center gap-2">
+            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-warning" 
+              pTooltip="Editar estudiante" tooltipPosition="top"
+              (click)="abrirModalEditar(estudiante)"></button>
+            <button pButton icon="pi pi-trash" class="p-button-rounded p-button-danger" 
+              pTooltip="Eliminar estudiante" tooltipPosition="top"
+              (click)="confirmarEliminacion(estudiante)"></button>
+          </div>
         </td>
       </tr>
     </ng-template>
@@ -178,3 +196,247 @@
     </div>
   </div>
 </p-dialog>
+
+<!-- Modal Crear Estudiante -->
+<p-dialog [(visible)]="crearModalVisible" [modal]="true" [closable]="true" [style]="{'width':'430px'}">
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-user text-blue-700 text-xl"></i>
+      <span class="text-lg font-semibold text-blue-800">Crear Estudiante</span>
+    </div>
+  </ng-template>
+  <form class="flex flex-col gap-4 py-2 px-1" (ngSubmit)="crearEstudiante()" #estudianteForm="ngForm">
+    <div class="grid grid-cols-1 gap-3">
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Nombre</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.user.first_name" name="first_name" required placeholder="Nombre" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Apellido</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.user.last_name" name="last_name" required placeholder="Apellido" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Correo electrónico</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.user.email" name="email" required type="email" placeholder="Correo electrónico" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Contraseña</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.user.password" name="password" required type="password" placeholder="Contraseña" />
+      </div>
+      <!-- Nuevo campo de selección de curso para generar ID -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Curso para ID</label>
+        <p-dropdown 
+          [options]="cursoOptions" 
+          [(ngModel)]="selectedCursoForId" 
+          name="idCurso" 
+          placeholder="Seleccione un curso para el ID"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full dropdown-up"
+          [scrollHeight]="'150px'"
+          [filter]="true"
+          appendTo="body"
+          [panelStyleClass]="'dropdown-panel-top'"
+          required>
+        </p-dropdown>
+      </div>
+      <!-- Eliminar este bloque del modal de creación -->
+      <!-- 
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Curso</label>
+        <select [(ngModel)]="nuevoEstudiante.current_course" name="current_course" class="p-inputtext p-component w-full" required>
+          <option value="1">1° Primaria</option>
+          <option value="2">2° Primaria</option>
+          <option value="3">3° Primaria</option>
+          <option value="4">4° Primaria</option>
+          <option value="5">5° Primaria</option>
+          <option value="6">6° Primaria</option>
+          <option value="7">1° Secundaria</option>
+          <option value="8">2° Secundaria</option>
+          <option value="9">3° Secundaria</option>
+          <option value="10">4° Secundaria</option>
+          <option value="11">5° Secundaria</option>
+          <option value="12">6° Secundaria</option>
+        </select>
+      </div>
+      -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Nombre del Padre/Tutor</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.parent_name" name="parent_name" required placeholder="Nombre del Padre/Tutor" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Teléfono de Contacto</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.emergency_contact" name="emergency_contact" required placeholder="Teléfono de contacto" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Correo del Padre/Tutor</label>
+        <input pInputText [(ngModel)]="nuevoEstudiante.parent_email" name="parent_email" type="email" placeholder="Correo del Padre/Tutor" />
+      </div>
+      
+    </div>
+    <!-- Agregar spinner de carga -->
+    <div class="flex justify-content-center align-items-center" *ngIf="loading">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <span class="ml-2">Procesando solicitud...</span>
+    </div>
+    <div class="flex justify-end gap-2 mt-4">
+      <button pButton type="button" label="Cancelar" class="p-button-text" (click)="crearModalVisible = false"></button>
+      <!-- Modificar botón de crear -->
+      <button 
+          pButton 
+          type="button" 
+          label="Crear" 
+          class="p-button-success" 
+          (click)="crearEstudiante()" 
+          [disabled]="loading">
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Modal Matriculación en Materia -->
+<p-dialog [(visible)]="matriculacionModalVisible" [modal]="true" [closable]="true" [style]="{'width':'450px'}">
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-book text-green-600 text-xl"></i>
+      <span class="text-lg font-semibold text-green-700">Matricular Estudiante en Materia</span>
+    </div>
+  </ng-template>
+  
+  <div *ngIf="estudianteSeleccionado" class="mb-4 p-3 bg-blue-50 rounded-lg">
+    <div class="font-bold text-blue-700">{{ estudianteSeleccionado.full_name }}</div>
+    <div class="text-sm text-blue-600">{{ estudianteSeleccionado.student_id }}</div>
+  </div>
+  
+  <form class="flex flex-col gap-4" (ngSubmit)="matricularEstudiante()" #matriculacionForm="ngForm">
+    <div class="grid grid-cols-1 gap-3">
+      <!-- Campo de Curso -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">
+          Curso <span class="text-red-500">*</span>
+        </label>
+        <p-dropdown
+          [options]="cursos"
+          [(ngModel)]="matriculaData.course"
+          name="course"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Seleccione un curso"
+          [showClear]="false"
+          styleClass="w-full"
+          required>
+        </p-dropdown>
+      </div>
+      
+      <!-- Campo de Materia -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">
+          Materia <span class="text-red-500">*</span>
+        </label>
+        <p-dropdown
+          [options]="materias"
+          [(ngModel)]="matriculaData.subject"
+          name="subject"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Seleccione una materia"
+          [showClear]="false"
+          styleClass="w-full"
+          required>
+        </p-dropdown>
+      </div>
+      
+      <!-- Campo de Periodo -->
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">
+          Periodo <span class="text-red-500">*</span>
+        </label>
+        <p-dropdown
+          [options]="periodos"
+          [(ngModel)]="matriculaData.period"
+          name="period"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Seleccione un periodo"
+          [showClear]="false"
+          styleClass="w-full"
+          required>
+        </p-dropdown>
+      </div>
+    </div>
+    
+    <div class="flex justify-end gap-2 mt-4">
+      <button pButton type="button" label="Cancelar" class="p-button-text" (click)="matriculacionModalVisible = false"></button>
+      <button pButton type="submit" label="Matricular" class="p-button-success" [disabled]="matriculacionForm.invalid"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Modal Editar Estudiante (agregar al final del archivo) -->
+<p-dialog [(visible)]="editarModalVisible" [modal]="true" [closable]="true" [style]="{'width':'430px'}">
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-user-edit text-yellow-600 text-xl"></i>
+      <span class="text-lg font-semibold text-yellow-800">Editar Estudiante</span>
+    </div>
+  </ng-template>
+  <form class="flex flex-col gap-4 py-2 px-1" #editarForm="ngForm">
+    <div class="grid grid-cols-1 gap-3">
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">ID de Estudiante</label>
+        <input pInputText [(ngModel)]="estudianteEditar.student_id" name="student_id" readonly disabled class="bg-gray-100" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Nombre</label>
+        <input pInputText [(ngModel)]="estudianteEditar.user.first_name" name="edit_first_name" required placeholder="Nombre" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Apellido</label>
+        <input pInputText [(ngModel)]="estudianteEditar.user.last_name" name="edit_last_name" required placeholder="Apellido" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Correo electrónico</label>
+        <input pInputText [(ngModel)]="estudianteEditar.user.email" name="edit_email" required type="email" placeholder="Correo electrónico" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Nombre del Padre/Tutor</label>
+        <input pInputText [(ngModel)]="estudianteEditar.parent_name" name="edit_parent_name" required placeholder="Nombre del Padre/Tutor" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Teléfono de Contacto</label>
+        <input pInputText [(ngModel)]="estudianteEditar.emergency_contact" name="edit_emergency_contact" required placeholder="Teléfono de contacto" />
+      </div>
+      <div>
+        <label class="block mb-1 font-medium text-gray-700">Correo del Padre/Tutor</label>
+        <input pInputText [(ngModel)]="estudianteEditar.parent_email" name="edit_parent_email" type="email" placeholder="Correo del Padre/Tutor" />
+      </div>
+    </div>
+    <!-- Indicador de carga -->
+    <div class="flex justify-content-center align-items-center" *ngIf="loading">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <span class="ml-2">Procesando solicitud...</span>
+    </div>
+    <div class="flex justify-end gap-2 mt-4">
+      <button pButton type="button" label="Cancelar" class="p-button-text" (click)="editarModalVisible = false"></button>
+      <button 
+          pButton 
+          type="button" 
+          label="Guardar Cambios" 
+          class="p-button-warning" 
+          (click)="guardarCambiosEstudiante()" 
+          [disabled]="loading || !editarForm.valid">
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Diálogo de confirmación para eliminación -->
+<p-confirmDialog [style]="{width: '450px'}" [baseZIndex]="10000" rejectButtonStyleClass="p-button-text">
+  <ng-template pTemplate="header">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-exclamation-triangle text-red-500 text-xl"></i>
+      <span class="text-lg font-semibold">Confirmar Eliminación</span>
+    </div>
+  </ng-template>
+</p-confirmDialog>

@@ -59,4 +59,17 @@ export class CalificacionService {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     return this.http.get<any>(`${this.baseUrl}${id}/`, { headers });
   }
+
+  /**
+   * Registra una nueva calificación
+   */
+  registrarCalificacion(data: any): Observable<any> {
+    const token = localStorage.getItem('auth_access');
+    if (!token) throw new Error('No hay token de acceso. Inicie sesión nuevamente.');
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+    
+    console.log('SERVICIO - DATOS A ENVIAR:', data);
+    
+    return this.http.post(this.baseUrl, data, { headers });
+  }
 }

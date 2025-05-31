@@ -21,9 +21,9 @@
       <tr class="bg-blue-800 text-white">
         <th class="px-4 py-2">ID Usuario</th>
         <th class="px-4 py-2">ID Profesor</th>
-        <th class="px-4 py-2">Email</th>
         <th class="px-4 py-2">Nombre Completo</th>
         <th class="px-4 py-2">Especialización</th>
+        <th class="px-4 py-2">Años de Exp</th>
         <th class="px-4 py-2">Acciones</th>
       </tr>
     </ng-template>
@@ -31,9 +31,9 @@
       <tr>
         <td class="border px-4 py-2">{{ profesor.user_id }}</td>
         <td class="border px-4 py-2">{{ profesor.teacher_id }}</td>
-        <td class="border px-4 py-2">{{ profesor.email }}</td>
-        <td class="border px-4 py-2">{{ profesor.full_name }}</td>
+        <td class="border px-4 py-2">{{ profesor.user_full_name }}</td>
         <td class="border px-4 py-2">{{ profesor.specialization }}</td>
+        <td class="border px-4 py-2">{{ profesor.years_of_experience }}</td>
         <td class="border px-4 py-2">
           <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-info" (click)="abrirModalEditar(profesor)" title="Editar"></button>
           <button pButton icon="pi pi-trash" class="p-button-rounded p-button-text p-button-danger ml-2" (click)="eliminarProfesor(profesor)" title="Eliminar"></button>

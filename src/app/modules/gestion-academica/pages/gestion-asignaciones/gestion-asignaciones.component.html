@@ -91,7 +91,7 @@
       </ng-template>
       <ng-template pTemplate="body" let-a>
         <tr>
-          <td>{{ a.teacher_details?.full_name || a.teacher?.details?.full_name }}</td>
+          <td>{{ a.teacher_details?.user_full_name || a.teacher?.details?.full_name }}</td>
           <td>{{ a.subject_name }}</td>
           <td>{{ a.course_name }}</td>
           <td>{{ a.period_name }}</td>

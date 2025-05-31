@@ -5,6 +5,8 @@ import { MateriaService } from '../../services/materia.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NotificacionService } from '../../../autenticacion/services/notificacion.service';
+import { AuthService } from '../../../autenticacion/services/auth.service';
+import { StudentService } from '../../../gestion-usuarios/services/student.service';
 
 // IMPORTA LOS MODULOS DE PRIMENG
 import { DropdownModule } from 'primeng/dropdown';
@@ -103,16 +105,46 @@ export class GestionCalificacionesComponent implements OnInit {
   historialPorAno: HistorialPorAno = {};
   loadingHistorial: boolean = false;
 
+  // Nuevas propiedades y métodos
+  isTeacher: boolean = false;
+  activeTab: number = 0;
+
+  // Para el registro de calificaciones
+  estudiantes: any[] = [];
+  loadingEstudiantes: boolean = false;
+  estudiantesRegistrados: {[key: string]: boolean} = {};
+  notasEstudiantes: {[key: string]: number} = {};
+  notasRegistradas: {[key: string]: number} = {};
+
+  filtrosRegistro: any = {
+    search: '',
+    course: '',
+    subject: '',
+    comment: ''
+  };
+
   constructor(
     private calificacionService: CalificacionService,
     private courseService: CursoService,
     private subjectService: MateriaService,
-    private noti: NotificacionService
+    private noti: NotificacionService,
+    private authService: AuthService,
+    private studentService: StudentService
   ) {}
 
   ngOnInit() {
+    // Cargar materias y cursos
     this.subjectService.obtenerMaterias(1, 100).subscribe(res => this.subjects = res.items || res);
     this.courseService.obtenerCursos(1, 100).subscribe(res => this.courses = res.items || res);
+    
+    // Verificar si el usuario es profesor - CAMBIAR ESTA LÍNEA
+    this.isTeacher = this.authService.isTeacher();
+    
+    // Determinar el periodo por defecto
+    const currentYear = new Date().getFullYear();
+    this.filtrosRegistro.period = currentYear === 2024 ? 1 : 2;
+    
+    // Cargar calificaciones iniciales
     this.buscar();
   }
 
@@ -253,5 +285,135 @@ export class GestionCalificacionesComponent implements OnInit {
 
   getPeriodoValue(item: {key: string, value: Calificacion[]}): Calificacion[] {
     return item.value || [];
+  }
+
+  /**
+   * Método para buscar estudiantes cuando se hace clic en el botón de búsqueda
+   */
+  onBuscarClick() {
+    this.loadingEstudiantes = true;
+    this.estudiantes = [];
+    this.estudiantesRegistrados = {};
+    this.notasEstudiantes = {};
+    this.notasRegistradas = {};
+    
+    this.studentService.listarEstudiantes(
+      1,
+      100,
+      this.filtrosRegistro.search?.trim() || ''
+    ).subscribe({
+      next: (res) => {
+        this.estudiantes = res.items || [];
+        this.loadingEstudiantes = false;
+        
+        if (this.estudiantes.length === 0) {
+          this.noti.info('Sin resultados', 'No se encontraron estudiantes con ese criterio');
+        }
+      },
+      error: (err) => {
+        console.error('Error al obtener estudiantes:', err);
+        this.loadingEstudiantes = false;
+        this.noti.error('Error', 'No se pudieron cargar los estudiantes');
+      }
+    });
+  }
+
+  /**
+   * Registra la calificación para un estudiante
+   */
+  registrarCalificacion(estudiante: any) {
+    if (!this.validarDatosCalificacion(estudiante)) {
+      return;
+    }
+    
+    // Clave única para controlar duplicados
+    const clave = `${estudiante.user_id}-${this.filtrosRegistro.subject}-${this.filtrosRegistro.comment}`;
+    
+    if (this.estudiantesRegistrados[clave]) {
+      this.noti.error('Ya registrado', 'La calificación de este estudiante ya fue registrada');
+      return;
+    }
+    
+    // Determinar el periodo basado en el año actual
+    const currentYear = new Date().getFullYear();
+    const period = currentYear === 2024 ? 1 : 2; // 2024 -> 1, otros años (2025) -> 2
+    
+    // Preparar datos con el campo period incluido
+    const calificacionData = {
+      student: estudiante.user_id,
+      course: this.filtrosRegistro.course,
+      subject: this.filtrosRegistro.subject,
+      value: this.notasEstudiantes[estudiante.user_id],
+      comment: this.filtrosRegistro.comment,
+      period: this.filtrosRegistro.period // Añadimos el campo period obligatorio
+    };
+    
+    console.log('DATOS A ENVIAR A LA API:', calificacionData);
+    
+    this.calificacionService.registrarCalificacion(calificacionData).subscribe({
+      next: (res) => {
+        console.log('RESPUESTA EXITOSA:', res);
+        this.noti.success('Éxito', `Calificación registrada para ${estudiante.full_name}`);
+        // Marcar como registrado
+        this.estudiantesRegistrados[clave] = true;
+        this.notasRegistradas[estudiante.user_id] = this.notasEstudiantes[estudiante.user_id];
+      },
+      error: (err) => {
+        console.error('ERROR COMPLETO:', err);
+        console.error('DETALLES DEL ERROR:', err.error);
+        
+        if (err.error?.detail?.includes('already exists')) {
+          this.noti.error('Duplicado', 'Ya existe una calificación registrada para este estudiante con estos datos');
+          this.estudiantesRegistrados[clave] = true;
+        } else {
+          this.noti.error('Error', 'No se pudo registrar la calificación: ' + (err.error?.detail || err.message || 'Error desconocido'));
+        }
+      }
+    });
+  }
+
+  /**
+   * Valida que los datos necesarios para registrar la calificación estén completos
+   */
+  validarDatosCalificacion(estudiante: any): boolean {
+    if (!this.filtrosRegistro.course) {
+      this.noti.error('Campo requerido', 'Seleccione un curso');
+      return false;
+    }
+    
+    if (!this.filtrosRegistro.subject) {
+      this.noti.error('Campo requerido', 'Seleccione una materia');
+      return false;
+    }
+    
+    if (!this.filtrosRegistro.comment) {
+      this.noti.error('Campo requerido', 'Ingrese un título para la calificación');
+      return false;
+    }
+    
+    if (!this.notasEstudiantes[estudiante.user_id]) {
+      this.noti.error('Campo requerido', 'Ingrese una calificación para el estudiante');
+      return false;
+    }
+    
+    const nota = this.notasEstudiantes[estudiante.user_id];
+    if (isNaN(nota) || nota < 0 || nota > 100) {
+      this.noti.error('Valor inválido', 'La calificación debe estar entre 0 y 100');
+      return false;
+    }
+    
+    return true;
+  }
+
+  /**
+   * Verifica si un estudiante ya tiene calificación registrada
+   */
+  estaRegistrado(estudiante: any): boolean {
+    if (!estudiante || !this.filtrosRegistro.subject || !this.filtrosRegistro.comment) {
+      return false;
+    }
+    
+    const clave = `${estudiante.user_id}-${this.filtrosRegistro.subject}-${this.filtrosRegistro.comment}`;
+    return this.estudiantesRegistrados[clave] === true;
   }
 }

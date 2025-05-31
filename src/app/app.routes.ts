@@ -78,6 +78,13 @@ export const routes: Routes = [
         .then(m => m.GestionAsistenciaComponent),
     canActivate: [ProfesorGuard]
   },
+  {
+    path: 'profesor/calificaciones',
+    loadComponent: () =>
+      import('./modules/gestion-academica/pages/gestion-calificaciones/gestion-calificaciones.component')
+        .then(m => m.GestionCalificacionesComponent),
+    canActivate: [ProfesorGuard]
+  },
   
   // Rutas compartidas
   {
