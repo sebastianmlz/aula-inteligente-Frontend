@@ -23,6 +23,14 @@ interface Backup {
   deleting?: boolean;     // Indicador de eliminación en progreso
 }
 
+// Nueva interfaz para el formato de respuesta de la API
+interface BackupResponse {
+  filename: string;
+  size_mb?: number;
+  created_at: string;
+  download_url?: string;
+}
+
 @Component({
   selector: 'app-gestion-backup',
   standalone: true,
@@ -69,17 +77,24 @@ export class GestionBackupComponent implements OnInit {
     this.loading = true;
     this.backupService.listarBackups().subscribe({
       next: (response) => {
-        // Asumiendo que la API devuelve un array de backups o una propiedad que contiene el array
-        if (Array.isArray(response)) {
-          this.backups = response;
-        } else if (response.items) {
-          this.backups = response.items;
-        }
+        console.log("Respuesta completa:", response);
         
-        // Agregar URLs de descarga
-        this.backups.forEach(backup => {
-          backup.download_url = this.backupService.getDownloadUrl(backup.filename);
-        });
+        // La respuesta tiene la estructura { backups: [...] }
+        if (response && response.backups && Array.isArray(response.backups)) {
+          // Usar el tipo explícito BackupResponse para el parámetro backup
+          this.backups = response.backups.map((backup: BackupResponse) => ({
+            filename: backup.filename,
+            // La API usa size_mb, pero nuestro componente espera size en bytes
+            size: backup.size_mb ? backup.size_mb * 1024 * 1024 : 0,
+            created_at: backup.created_at,
+            download_url: backup.download_url || this.backupService.getDownloadUrl(backup.filename),
+            downloading: false,
+            deleting: false
+          }));
+        } else {
+          console.warn('La respuesta no tiene la estructura esperada:', response);
+          this.backups = [];
+        }
         
         this.loading = false;
       },
@@ -92,6 +107,7 @@ export class GestionBackupComponent implements OnInit {
           life: 3000
         });
         this.loading = false;
+        this.backups = [];
       }
     });
   }

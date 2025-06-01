@@ -1,0 +1,435 @@
+<p-toast></p-toast>
+
+<div class="p-4">
+  <div class="card p-fluid">
+    <h2 class="text-2xl font-bold text-blue-800 mb-4">
+      <i class="pi pi-file-pdf text-blue-600 mr-2"></i>
+      Gestión de Boletines
+    </h2>
+
+    <!-- Filtros -->
+    <p-toolbar styleClass="mb-4">
+      <ng-template pTemplate="left">
+        <div class="p-inputgroup mr-2" style="width: 300px">
+          <span class="p-inputgroup-addon">
+            <i class="pi pi-search"></i>
+          </span>
+          <input 
+            type="text" 
+            pInputText 
+            [ngModel]="getFilterValue('search')" 
+            (ngModelChange)="updateFilter('search', $event)" 
+            placeholder="Buscar estudiante..." 
+          />
+        </div>
+        <button pButton label="Buscar" icon="pi pi-search" (click)="applyFilter()" class="mr-2"></button>
+        <button pButton label="Limpiar" icon="pi pi-filter-slash" class="p-button-outlined" (click)="clearFilters()"></button>
+      </ng-template>
+      <ng-template pTemplate="right">
+        <button 
+          pButton 
+          label="Generar Boletín" 
+          icon="pi pi-plus" 
+          class="p-button-success mr-2" 
+          (click)="openGenerateDialog()">
+        </button>
+        <button pButton label="Actualizar" icon="pi pi-refresh" (click)="loadReportes()" [loading]="loading()"></button>
+      </ng-template>
+    </p-toolbar>
+
+    <!-- Tabla de Reportes -->
+    <p-table
+      [value]="reportes()"
+      [loading]="loading()"
+      styleClass="p-datatable-sm p-datatable-gridlines"
+      [paginator]="true"
+      [rows]="pageSize()"
+      [totalRecords]="totalReports()"
+      [rowsPerPageOptions]="[10, 25, 50]"
+      (onPage)="onPageChange($event)"
+      responsiveLayout="scroll"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Estudiante</th>
+          <th>ID</th>
+          <th>Curso</th>
+          <th>Trimestre</th>
+          <th>Promedio</th>
+          <th>Estado</th>
+          <th>Generado</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-reporte>
+        <tr>
+          <td>
+            <div class="flex align-items-center">
+              <p-avatar icon="pi pi-user" styleClass="mr-2" [style]="{'background-color': '#2196F3', 'color': '#ffffff'}"></p-avatar>
+              <span>{{ reporte.student.full_name }}</span>
+            </div>
+          </td>
+          <td>{{ reporte.student.student_id }}</td>
+          <td>{{ reporte.student.current_course_name }}</td>
+          <td>{{ reporte.trimester.name }}</td>
+          <td>
+            <div class="flex align-items-center">
+              <span class="font-bold mr-2">{{ reporte.overall_average }}</span>
+              <p-progressBar 
+                [value]="parseFloat(reporte.overall_average)" 
+                [showValue]="false" 
+                [style]="{'width':'100px', 'height':'8px'}"
+                [color]="parseFloat(reporte.overall_average) >= 80 ? '#4CAF50' : parseFloat(reporte.overall_average) >= 65 ? '#FFC107' : '#F44336'"
+              ></p-progressBar>
+            </div>
+          </td>
+          <td>
+            <p-tag 
+              [value]="reporte.status" 
+              [severity]="getStatusSeverity(reporte.status)"
+            ></p-tag>
+          </td>
+          <td>{{ formatDate(reporte.generated_at) }}</td>
+          <td>
+            <div class="flex gap-2">
+              <button 
+                pButton 
+                icon="pi pi-eye" 
+                class="p-button-rounded p-button-info p-button-sm" 
+                (click)="showDetalle(reporte)"
+                pTooltip="Ver detalles"
+              ></button>
+              <button 
+                pButton 
+                icon="pi pi-download" 
+                class="p-button-rounded p-button-success p-button-sm"
+                pTooltip="Descargar PDF"
+                *ngIf="getPdfFile(reporte)"
+                (click)="downloadReport(getPdfFile(reporte)?.url || '', 'PDF')"
+              ></button>
+              <button 
+                pButton 
+                icon="pi pi-file-excel" 
+                class="p-button-rounded p-button-warning p-button-sm"
+                pTooltip="Descargar Excel"
+                *ngIf="getExcelFile(reporte)"
+                (click)="downloadReport(getExcelFile(reporte)?.url || '', 'EXCEL')"
+              ></button>
+              <button 
+                pButton 
+                icon="pi pi-file-o" 
+                class="p-button-rounded p-button-help p-button-sm"
+                pTooltip="Descargar HTML"
+                *ngIf="getHtmlFile(reporte)"
+                (click)="downloadReport(getHtmlFile(reporte)?.url || '', 'HTML')"
+              ></button>
+              <button 
+                pButton 
+                icon="pi pi-plus-circle" 
+                class="p-button-rounded p-button-success p-button-sm"
+                pTooltip="Generar nuevo boletín"
+                (click)="openGenerateForStudent($event, reporte.student)"
+              ></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center p-4">
+            <div class="flex flex-column align-items-center">
+              <i class="pi pi-file text-5xl text-gray-400 mb-3"></i>
+              <span class="text-gray-500 mb-2">No se encontraron reportes</span>
+              <button pButton label="Actualizar" icon="pi pi-refresh" class="p-button-sm" (click)="loadReportes()"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- Diálogo de Detalle -->
+<p-dialog 
+  [visible]="showDetalleDialog()"
+  (onHide)="showDetalleDialog.set(false)"
+  [closable]="true"
+  [style]="{width: '95vw'}" 
+  [breakpoints]="{'960px': '95vw', '640px': '100vw'}"
+  [maximizable]="true"
+  styleClass="p-fluid"
+  [modal]="true" 
+  [draggable]="false" 
+  [resizable]="false"
+  header="Detalle de Boletín"
+>
+  <ng-container *ngIf="selectedReporte()">
+    <!-- Información del estudiante -->
+    <div class="grid">
+      <div class="col-12 md:col-6">
+        <div class="card bg-blue-50 p-3 mb-4 border-round border-1 border-blue-100">
+          <div class="flex align-items-center mb-3">
+            <p-avatar icon="pi pi-user" size="large" styleClass="mr-3" [style]="{'background-color': '#2196F3', 'color': '#ffffff'}"></p-avatar>
+            <div>
+              <h3 class="m-0 text-xl">{{ selectedReporte()?.student?.full_name || 'Sin nombre' }}</h3>
+              <p class="m-0 text-600">{{ selectedReporte()?.student?.email || 'Sin correo' }}</p>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="col-6">
+              <div class="mb-2">
+                <label class="block text-600 mb-1">ID Estudiante</label>
+                <div class="font-medium">{{ selectedReporte()?.student?.student_id || 'N/A' }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mb-2">
+                <label class="block text-600 mb-1">Curso</label>
+                <div class="font-medium">{{ selectedReporte()?.student?.current_course_name || 'N/A' }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mb-2">
+                <label class="block text-600 mb-1">Trimestre</label>
+                <div class="font-medium">{{ selectedReporte()?.trimester?.name || 'N/A' }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mb-2">
+                <label class="block text-600 mb-1">Período</label>
+                <div class="font-medium">
+                  {{ formatDate(selectedReporte()?.trimester?.start_date || '') }} al 
+                  {{ formatDate(selectedReporte()?.trimester?.end_date || '') }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-12 md:col-6">
+        <div class="card bg-blue-50 p-3 mb-4 border-round border-1 border-blue-100">
+          <h3 class="mb-3">Promedio General: 
+            <span class="text-xl font-bold" 
+                  [ngClass]="{
+                    'text-green-600': parseFloat(selectedReporte()?.overall_average || '0') >= 80,
+                    'text-yellow-600': parseFloat(selectedReporte()?.overall_average || '0') >= 65 && parseFloat(selectedReporte()?.overall_average || '0') < 80,
+                    'text-red-600': parseFloat(selectedReporte()?.overall_average || '0') < 65
+                  }">
+              {{ selectedReporte()?.overall_average || '0' }}
+            </span>
+          </h3>
+          <p-progressBar 
+            [value]="parseFloat(selectedReporte()?.overall_average || '0')" 
+            [showValue]="true"
+            [style]="{'height':'20px'}"
+            [color]="parseFloat(selectedReporte()?.overall_average || '0') >= 80 ? '#4CAF50' : parseFloat(selectedReporte()?.overall_average || '0') >= 65 ? '#FFC107' : '#F44336'"
+          ></p-progressBar>
+          
+          <div class="flex justify-content-between mt-4">
+            <div>
+              <label class="block text-600 mb-1">Estatus</label>
+              <p-tag [value]="selectedReporte()?.status || ''" [severity]="getStatusSeverity(selectedReporte()?.status || '')"></p-tag>
+            </div>
+            <div>
+              <label class="block text-600 mb-1">Generado</label>
+              <div class="font-medium">{{ formatDate(selectedReporte()?.generated_at || '') }}</div>
+            </div>
+          </div>
+          
+          <div class="flex gap-2 justify-content-end mt-4">
+            <button 
+              pButton 
+              icon="pi pi-download" 
+              label="PDF"
+              class="p-button-sm" 
+              *ngIf="getPdfFile(selectedReporte())"
+              (click)="downloadReport(getPdfFile(selectedReporte())?.url || '', 'PDF')"
+            ></button>
+            <button 
+              pButton 
+              icon="pi pi-file-excel" 
+              label="Excel"
+              class="p-button-sm p-button-warning" 
+              *ngIf="getExcelFile(selectedReporte())"
+              (click)="downloadReport(getExcelFile(selectedReporte())?.url || '', 'EXCEL')"
+            ></button>
+            <button 
+              pButton 
+              icon="pi pi-file-o"
+              label="HTML" 
+              class="p-button-sm p-button-help" 
+              *ngIf="getHtmlFile(selectedReporte())"
+              (click)="downloadReport(getHtmlFile(selectedReporte())?.url || '', 'HTML')"
+            ></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Gráfico de calificaciones -->
+    <div class="card mb-4">
+      <h3 class="mb-3">Gráfico de Calificaciones por Materia</h3>
+      <p-chart type="bar" [data]="chartData()" [options]="chartOptions()" height="300px"></p-chart>
+    </div>
+    
+    <!-- Tabla de calificaciones por materia -->
+    <div class="card">
+      <h3 class="mb-3">Calificaciones por Materias</h3>
+      <p-table [value]="selectedReporte()?.grades_data?.subjects || []" styleClass="p-datatable-sm p-datatable-gridlines">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Materia</th>
+            <th style="width: 140px">Promedio</th>
+            <th>Evaluaciones</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-subject>
+          <tr>
+            <td>{{ subject.subject_name }}</td>
+            <td>
+              <div class="flex align-items-center">
+                <span class="font-bold mr-2">{{ subject.subject_average.toFixed(1) }}</span>
+                <p-progressBar 
+                  [value]="subject.subject_average" 
+                  [showValue]="false" 
+                  [style]="{'width':'80px', 'height':'8px'}"
+                  [color]="subject.subject_average >= 80 ? '#4CAF50' : subject.subject_average >= 65 ? '#FFC107' : '#F44336'"
+                ></p-progressBar>
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-1 flex-wrap">
+                <p-chip 
+                  *ngFor="let assessment of subject.assessments" 
+                  [label]="assessment.grade_value.toString()"
+                  [style]="{
+                    'background-color': assessment.grade_value >= 80 ? '#E8F5E9' : assessment.grade_value >= 65 ? '#FFF8E1' : '#FFEBEE',
+                    'color': assessment.grade_value >= 80 ? '#2E7D32' : assessment.grade_value >= 65 ? '#F57F17' : '#C62828'
+                  }"
+                  pTooltip="{{assessment.name}} - {{formatDate(assessment.date)}}"
+                ></p-chip>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </ng-container>
+  
+  <ng-template pTemplate="footer">
+    <button pButton label="Cerrar" icon="pi pi-times" (click)="showDetalleDialog.set(false)"></button>
+  </ng-template>
+</p-dialog>
+
+<!-- Dialog for generating new bulletin -->
+<p-dialog 
+  [visible]="showGenerateDialog()" 
+  (onHide)="showGenerateDialog.set(false)" 
+  [modal]="true" 
+  [closable]="true"
+  [style]="{'border-radius': '1rem', 'overflow': 'hidden', 'width': '500px', 'max-width': '95vw'}"
+  appendTo="body" 
+  header="Generar Nuevo Boletín">
+  
+  <div class="p-fluid">
+    <!-- Student search input -->
+    <div class="field mb-4">
+      <label for="student-search" class="font-semibold mb-2 block">Buscar Estudiante</label>
+      <span class="p-input-icon-left w-full">
+        <i class="pi pi-search"></i>
+        <input 
+          type="text" 
+          pInputText 
+          id="student-search"
+          [(ngModel)]="studentSearchQuery"
+          (input)="searchStudents()"
+          placeholder="Código (S6), Nombre o Correo"
+          class="w-full"
+        />
+      </span>
+      
+      <!-- Loading indicator -->
+      <div *ngIf="searchingStudents()" class="mt-2">
+        <p-progressBar mode="indeterminate" [style]="{'height': '6px'}"></p-progressBar>
+      </div>
+    </div>
+    
+    <!-- Student selection results -->
+    <!-- Update the student selection results to match StudentService response format -->
+    <div *ngIf="filteredStudents().length > 0" class="mb-4 border-1 border-gray-300 surface-card border-round">
+      <ul class="list-none p-0 m-0 max-h-[200px] overflow-auto">
+        <li *ngFor="let student of filteredStudents()" 
+            class="p-3 border-bottom-1 border-gray-300 cursor-pointer flex align-items-center hover:bg-blue-50"
+            [ngClass]="{'bg-blue-100': selectedStudent()?.user_id === student.user_id}"
+            (click)="selectStudent(student)">
+          <p-avatar icon="pi pi-user" styleClass="mr-3"></p-avatar>
+          <div>
+            <div class="font-semibold">{{ student.full_name }}</div>
+            <div class="text-sm text-gray-600">{{ student.student_id }}</div>
+            <div class="text-sm text-gray-500">{{ student.email }}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+    <!-- No results message -->
+    <div *ngIf="!searchingStudents() && filteredStudents().length === 0 && studentSearchQuery" 
+        class="mb-4 p-3 border-round bg-gray-100 text-center text-gray-600">
+      No se encontraron estudiantes con ese criterio de búsqueda.
+    </div>
+    
+    <!-- Selected student display -->
+    <div *ngIf="selectedStudent()" class="mb-4 bg-blue-50 border-round p-3">
+      <div class="flex align-items-center">
+        <p-avatar icon="pi pi-user" styleClass="mr-3"></p-avatar>
+        <div>
+          <div class="font-bold">{{ selectedStudent().full_name }}</div>
+          <div class="text-gray-600">{{ selectedStudent().student_id }}</div>
+          <div class="text-gray-500">{{ selectedStudent().email }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Trimester selection -->
+    <div class="field mb-4" *ngIf="selectedStudent()">
+      <label for="trimester" class="font-semibold mb-2 block">Trimestre</label>
+      <p-dropdown 
+        [options]="trimesters()" 
+        [(ngModel)]="selectedTrimesterId" 
+        optionLabel="name" 
+        optionValue="id" 
+        placeholder="Seleccione un trimestre"
+        styleClass="w-full"
+        [filter]="true"
+        id="trimester">
+      </p-dropdown>
+    </div>
+    
+    <!-- Force regenerate option -->
+    <div class="field-checkbox mb-4 flex align-items-center" *ngIf="selectedStudent()">
+      <p-checkbox [(ngModel)]="forceRegenerate" [binary]="true" inputId="force-regenerate"></p-checkbox>
+      <label for="force-regenerate" class="ml-2 cursor-pointer">Regenerar (incluso si ya existe)</label>
+    </div>
+  </div>
+  
+  <!-- Footer buttons -->
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancelar" 
+      icon="pi pi-times" 
+      class="p-button-text" 
+      (click)="showGenerateDialog.set(false)">
+    </button>
+    <button 
+      pButton 
+      label="Generar Boletín" 
+      icon="pi pi-file-pdf" 
+      class="p-button-success" 
+      [disabled]="!selectedStudent() || !selectedTrimesterId || generatingReport()"
+      [loading]="generatingReport()"
+      (click)="generateReport()">
+    </button>
+  </ng-template>
+</p-dialog>

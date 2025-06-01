@@ -70,6 +70,13 @@ export const routes: Routes = [
     canActivate: [administradorGuard]
   },
   {
+    path: 'admin/reportes',
+    loadComponent: () =>
+      import('./modules/reportes/pages/gestion-reportes/gestion-reportes.component')
+        .then(m => m.GestionReportesComponent),
+    canActivate: [administradorGuard]
+  },
+  {
     path: 'admin/backup',
     loadComponent: () =>
       import('./modules/gestion-usuarios/pages/gestion-backup/gestion-backup.component')
