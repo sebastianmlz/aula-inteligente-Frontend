@@ -62,6 +62,20 @@ export const routes: Routes = [
         .then(m => m.GestionCalificacionesComponent),
     canActivate: [administradorGuard]
   },
+  {
+    path: 'admin/bitacora',
+    loadComponent: () =>
+      import('./modules/gestion-usuarios/pages/gestion-bitacora/gestion-bitacora.component')
+        .then(m => m.GestionBitacoraComponent),
+    canActivate: [administradorGuard]
+  },
+  {
+    path: 'admin/backup',
+    loadComponent: () =>
+      import('./modules/gestion-usuarios/pages/gestion-backup/gestion-backup.component')
+        .then(m => m.GestionBackupComponent),
+    canActivate: [administradorGuard]
+  },
 
   //Rutas de profesor
   {
@@ -76,6 +90,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/gestion-academica/pages/gestion-asistencia/gestion-asistencia.component')
         .then(m => m.GestionAsistenciaComponent),
+    canActivate: [ProfesorGuard]
+  },
+  {
+    path: 'profesor/participaciones',
+    loadComponent: () =>
+      import('./modules/gestion-academica/pages/gestion-participacion/gestion-participacion.component')
+        .then(m => m.GestionParticipacionComponent),
     canActivate: [ProfesorGuard]
   },
   {

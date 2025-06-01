@@ -1,0 +1,225 @@
+<div class="p-4">
+  <div class="w-full bg-purple-700 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
+    <i class="pi pi-history text-2xl text-white mr-3"></i>
+    <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Bitácora del Sistema</h2>
+  </div>
+
+  <div class="p-card p-4 mb-6 shadow-lg">
+    <h3 class="text-xl font-bold mb-4 text-gray-800">Filtros de Búsqueda</h3>
+    
+    <form (ngSubmit)="buscar()" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Filtro por nivel de log -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Nivel</label>
+        <p-dropdown
+          [options]="nivelOptions"
+          [(ngModel)]="filtros.level"
+          name="level"
+          placeholder="Todos los niveles"
+          [showClear]="true"
+          class="w-full">
+        </p-dropdown>
+      </div>
+
+      <!-- Filtro por acción -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Acción</label>
+        <p-dropdown
+          [options]="accionOptions"
+          [(ngModel)]="filtros.action"
+          name="action"
+          placeholder="Todas las acciones"
+          [showClear]="true"
+          class="w-full">
+        </p-dropdown>
+      </div>
+
+      <!-- Filtro por tabla -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Tabla</label>
+        <input
+          pInputText
+          [(ngModel)]="filtros.table_name"
+          name="table_name"
+          placeholder="Nombre de tabla"
+          class="w-full" />
+      </div>
+
+      <!-- Filtro por fecha desde -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Desde</label>
+        <p-calendar
+          [(ngModel)]="filtros.start_date"
+          name="start_date"
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Fecha inicio"
+          appendTo="body"
+          class="w-full">
+        </p-calendar>
+      </div>
+
+      <!-- Filtro por fecha hasta -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Hasta</label>
+        <p-calendar
+          [(ngModel)]="filtros.end_date"
+          name="end_date" 
+          [showIcon]="true"
+          dateFormat="yy-mm-dd"
+          placeholder="Fecha fin"
+          appendTo="body"
+          class="w-full">
+        </p-calendar>
+      </div>
+
+      <!-- Filtro por usuario -->
+      <div class="flex flex-col">
+        <label class="font-semibold mb-1">Usuario</label>
+        <input
+          pInputText
+          [(ngModel)]="filtros.user"
+          name="user"
+          placeholder="ID o nombre de usuario"
+          class="w-full" />
+      </div>
+
+      <!-- Filtro por término de búsqueda -->
+      <div class="flex flex-col col-span-2">
+        <label class="font-semibold mb-1">Buscar</label>
+        <input
+          pInputText
+          [(ngModel)]="filtros.search"
+          name="search"
+          placeholder="Buscar en mensajes..."
+          class="w-full" />
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="flex items-end gap-2">
+        <button pButton type="submit" label="Buscar" icon="pi pi-search" class="p-button-primary"></button>
+        <button pButton type="button" label="Limpiar" icon="pi pi-times" 
+          class="p-button-secondary" (click)="limpiarFiltros()"></button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabla de resultados - optimizada -->
+  <div class="p-card shadow-lg" *ngIf="resultadosBusqueda">
+    <p-table
+      [value]="logs"
+      [rows]="pageSize"
+      [paginator]="true"
+      [lazy]="true"
+      [totalRecords]="totalRecords"
+      (onPage)="onPageChange($event)"
+      [loading]="loading"
+      [rowsPerPageOptions]="[10, 20, 50, 100]"
+      [first]="(currentPage-1) * pageSize"
+      styleClass="p-datatable-sm">
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 160px">Fecha</th>
+          <th style="width: 100px">Nivel</th>
+          <th style="width: 120px">Acción</th>
+          <th>Usuario</th>
+          <th>Descripción</th>
+          <th style="width: 80px">Detalles</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-log>
+        <tr>
+          <td>{{ log.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            <p-tag [value]="log.level" [severity]="getSeverity(log.level)"></p-tag>
+          </td>
+          <td>{{ log.action }}</td>
+          <td>{{ log.user || log.user_email || 'Sistema' }}</td>
+          <td class="truncate max-w-xs">{{ log.message || log.description }}</td>
+          <td class="text-center">
+            <button 
+              pButton 
+              icon="pi pi-search" 
+              class="p-button-rounded p-button-info p-button-sm" 
+              (click)="showDetails(log)"
+              pTooltip="Ver detalles"
+              tooltipPosition="left">
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center py-4">
+            No se encontraron registros que coincidan con los criterios de búsqueda.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Modal para ver detalles completos -->
+  <p-dialog 
+    header="Detalles de registro" 
+    [(visible)]="displayDetailDialog" 
+    [style]="{width: '650px'}" 
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false">
+    <div *ngIf="selectedLog" class="p-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2 bg-gray-50 p-4 rounded-lg">
+          <p-tag [value]="selectedLog.level" [severity]="getSeverity(selectedLog.level)" class="mb-2"></p-tag>
+          <h3 class="text-lg font-bold mb-2">{{ selectedLog.action }}</h3>
+          <p class="text-gray-700">{{ selectedLog.message || selectedLog.description }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">ID</h4>
+          <p>{{ selectedLog.id }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">Fecha y hora</h4>
+          <p>{{ selectedLog.created_at | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">Usuario</h4>
+          <p>{{ selectedLog.user || 'No registrado' }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">Correo</h4>
+          <p>{{ selectedLog.user_email || 'No disponible' }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">Tabla afectada</h4>
+          <p>{{ selectedLog.table_name || 'No aplica' }}</p>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-500">Dirección IP</h4>
+          <p>{{ selectedLog.ip_address || 'No registrada' }}</p>
+        </div>
+
+        <div class="col-span-2" *ngIf="selectedLog.details">
+          <h4 class="text-sm font-semibold text-gray-500">Detalles técnicos</h4>
+          <pre class="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-40">{{ selectedLog.details | json }}</pre>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-4">
+        <button pButton label="Cerrar" icon="pi pi-times" (click)="displayDetailDialog=false" class="p-button-secondary"></button>
+      </div>
+    </div>
+  </p-dialog>
+
+  <!-- Mensaje informativo inicial -->
+  <div *ngIf="!resultadosBusqueda" class="text-center my-12 text-gray-500">
+    <i class="pi pi-history text-5xl mb-4"></i>
+    <h3 class="text-xl font-semibold mb-2">Bitácora del Sistema</h3>
+    <p class="text-lg mb-4">Utiliza los filtros superiores para buscar registros de actividad en el sistema.</p>
+  </div>
+</div>

@@ -1,17 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-
-// Importaciones de PrimeNG
-import { TableModule } from 'primeng/table';
-import { TabViewModule } from 'primeng/tabview';
+import { FormsModule } from '@angular/forms';
 import { DropdownModule } from 'primeng/dropdown';
-import { CalendarModule } from 'primeng/calendar';
-import { ButtonModule } from 'primeng/button';
+import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
-// Agrega cualquier otro módulo de PrimeNG que estés usando
+import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
+import { CalendarModule } from 'primeng/calendar';
+import { TabViewModule } from 'primeng/tabview';
+import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 
-import { AsistenciaService } from '../../services/asistencia.service';
+import { ParticipacionService } from '../../services/participacion.service';
 import { MateriaService } from '../../services/materia.service';
 import { CursoService } from '../../services/curso.service';
 import { StudentService } from '../../../gestion-usuarios/services/student.service';
@@ -19,25 +19,26 @@ import { NotificacionService } from '../../../autenticacion/services/notificacio
 import { AuthService } from '../../../autenticacion/services/auth.service';
 
 @Component({
-  selector: 'app-gestion-asistencia',
-  templateUrl: './gestion-asistencia.component.html',
-  styleUrls: ['./gestion-asistencia.component.css'],
+  selector: 'app-gestion-participacion',
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
-    TableModule,
-    TabViewModule,
     DropdownModule,
-    CalendarModule,
+    TableModule,
+    InputTextModule,
     ButtonModule,
-    InputTextModule
-    // Agrega aquí todos los módulos de PrimeNG que utilices en el template
-  ]
+    DialogModule,
+    CalendarModule,
+    TabViewModule,
+    ToastModule,
+    TooltipModule
+  ],
+  templateUrl: './gestion-participacion.component.html',
+  styleUrl: './gestion-participacion.component.css'
 })
-export class GestionAsistenciaComponent implements OnInit {
-  // SECCIÓN 1: PROPIEDADES PARA BÚSQUEDA DE ASISTENCIAS
+export class GestionParticipacionComponent implements OnInit {
+  // SECCIÓN 1: PROPIEDADES PARA BÚSQUEDA DE PARTICIPACIONES
   subjects: any[] = [];
   courses: any[] = [];
   periods: any[] = [
@@ -45,7 +46,7 @@ export class GestionAsistenciaComponent implements OnInit {
     { label: '2025', value: 2 }
   ];
   
-  asistencias: any[] = [];
+  participaciones: any[] = [];
   resultadosBusqueda: boolean = false;
   
   filtros: any = {
@@ -55,14 +56,14 @@ export class GestionAsistenciaComponent implements OnInit {
     from_date: '',
     to_date: '',
     period: '',
-    status: '',
+    level: '',
     search: ''
   };
   
-  estadosAsistencia = [
-    { label: 'Presente', value: 'present' },
-    { label: 'Ausente', value: 'absent' },
-    { label: 'Tardanza', value: 'late' }
+  nivelesParticipacion = [
+    { label: 'Alta', value: 'high' },
+    { label: 'Media', value: 'medium' },
+    { label: 'Baja', value: 'low' }
   ];
   
   // Propiedades para paginación (búsqueda)
@@ -74,13 +75,13 @@ export class GestionAsistenciaComponent implements OnInit {
   hasPrevPage: boolean = false;
   loading: boolean = false;
   
-  // SECCIÓN 2: PROPIEDADES PARA CREAR ASISTENCIAS
+  // SECCIÓN 2: PROPIEDADES PARA CREAR PARTICIPACIONES
   activeTab: number = 0; // 0 = consulta, 1 = registro
   
   // Añadir propiedad para la fecha actual
   fechaActual: Date = new Date();
   
-  // Filtros para registro de asistencia
+  // Filtros para registro de participación
   filtrosRegistro: any = {
     course: '',
     subject: '',
@@ -96,11 +97,11 @@ export class GestionAsistenciaComponent implements OnInit {
   estudiantes: any[] = [];
   loadingEstudiantes: boolean = false;
   
-  // Control de estudiantes con asistencia registrada
+  // Control de estudiantes con participación registrada
   estudiantesRegistrados: {[key: string]: boolean} = {};
   
   constructor(
-    private asistenciaService: AsistenciaService,
+    private participacionService: ParticipacionService,
     private materiaService: MateriaService,
     private cursoService: CursoService,
     private studentService: StudentService,
@@ -119,7 +120,7 @@ export class GestionAsistenciaComponent implements OnInit {
   }
   
   /**
-   * Realiza búsqueda de asistencias con los filtros aplicados
+   * Realiza búsqueda de participaciones con los filtros aplicados
    */
   buscar(page: number = 1, pageSize: number = 10) {
     this.loading = true;
@@ -143,9 +144,9 @@ export class GestionAsistenciaComponent implements OnInit {
       filtrosLimpios['teacher'] = this.authService.getCurrentUserId();
     }
     
-    this.asistenciaService.listarAsistencias(filtrosLimpios, page, pageSize).subscribe({
+    this.participacionService.listarParticipaciones(filtrosLimpios, page, pageSize).subscribe({
       next: (res) => {
-        this.asistencias = res.items;
+        this.participaciones = res.items;
         this.totalRecords = res.total;
         this.currentPage = res.page;
         this.pageSize = res.page_size;
@@ -156,9 +157,9 @@ export class GestionAsistenciaComponent implements OnInit {
         this.resultadosBusqueda = true;
       },
       error: (err) => {
-        console.error('Error al obtener asistencias:', err);
+        console.error('Error al obtener participaciones:', err);
         this.loading = false;
-        this.noti.error('Error', 'No se pudieron cargar las asistencias');
+        this.noti.error('Error', 'No se pudieron cargar las participaciones');
       }
     });
   }
@@ -203,18 +204,10 @@ export class GestionAsistenciaComponent implements OnInit {
   }
   
   /**
-   * Ya no necesitamos esta función - se reemplaza por obtenerEstudiantes()
-   * Podemos eliminarla o mantenerla como alias para compatibilidad
+   * Registra participación para un estudiante
    */
-  buscarEstudiantes() {
-    this.onBuscarClick();
-  }
-  
-  /**
-   * Registra asistencia para un estudiante
-   */
-  registrarAsistencia(estudiante: any, estado: string) {
-    if (!this.validarDatosAsistencia()) {
+  registrarParticipacion(estudiante: any, nivel: string) {
+    if (!this.validarDatosParticipacion()) {
       return;
     }
     
@@ -223,59 +216,70 @@ export class GestionAsistenciaComponent implements OnInit {
     
     // Si ya está registrado, no permitir registrar nuevamente
     if (this.estudiantesRegistrados[clave]) {
-      this.noti.error('Ya registrado', 'La asistencia de este estudiante ya fue registrada para esta fecha y materia');
+      this.noti.error('Ya registrado', 'La participación de este estudiante ya fue registrada para esta fecha y materia');
       return;
     }
     
-    // Obtener el curso seleccionado en el dropdown
+    // Obtener descripciones para mensaje
     const cursoSeleccionado = this.courses.find(c => c.id === this.filtrosRegistro.course);
+    const materiaSeleccionada = this.subjects.find(s => s.id === this.filtrosRegistro.subject);
+    const nivelTexto = nivel === 'high' ? 'Alta' : nivel === 'medium' ? 'Media' : 'Baja';
     
     if (!cursoSeleccionado) {
       this.noti.error('Error', 'Seleccione un curso válido');
       return;
     }
     
-    const asistenciaData = {
+    // Configurar datos para enviar a la API
+    const participacionData = {
       student: estudiante.user_id,
-      course: this.filtrosRegistro.course, // Usar el ID del curso seleccionado
+      course: this.filtrosRegistro.course,
       subject: this.filtrosRegistro.subject,
       date: this.formatDate(this.filtrosRegistro.date),
-      status: estado,
-      period: this.filtrosRegistro.period
+      level: nivel,
+      period: this.filtrosRegistro.period,
+      comments: `Participación ${nivelTexto}`
     };
     
-    // AGREGAR LOGS PARA DEPURACIÓN
-    console.log('DATOS DE ESTUDIANTE:', estudiante);
-    console.log('CURSO SELECCIONADO:', cursoSeleccionado);
-    console.log('DATOS A ENVIAR A LA API:', asistenciaData);
-    console.log('VALORES DE FILTROS:', this.filtrosRegistro);
+    // Mostrar indicador de carga en la UI (puedes agregar un estado de carga si es necesario)
+    this.loading = true;
     
-    this.asistenciaService.registrarAsistencia(asistenciaData).subscribe({
+    this.participacionService.registrarParticipacion(participacionData).subscribe({
       next: (res) => {
-        console.log('RESPUESTA EXITOSA:', res);
-        this.noti.success('Éxito', `Asistencia registrada para ${estudiante.full_name}`);
-        // Marcar como registrado
+        // Actualizar UI
         this.estudiantesRegistrados[clave] = true;
+        this.loading = false;
+        
+        // Mostrar mensaje de éxito con detalles
+        this.noti.success(
+          'Participación registrada', 
+          `${nivelTexto} participación registrada para ${estudiante.full_name} en ${materiaSeleccionada?.name}`
+        );
       },
       error: (err) => {
-        console.error('ERROR COMPLETO:', err);
-        console.error('DETALLES DEL ERROR:', err.error);
-        console.error('DATOS ENVIADOS QUE CAUSARON ERROR:', asistenciaData);
+        this.loading = false;
         
+        // Manejar casos de error específicos
         if (err.error?.detail?.includes('already exists')) {
-          this.noti.error('Duplicado', 'Ya existe un registro de asistencia para este estudiante en esta fecha y materia');
           this.estudiantesRegistrados[clave] = true;
+          this.noti.error(
+            'Participación duplicada', 
+            `${estudiante.full_name} ya tiene participación registrada para esta fecha y materia`
+          );
         } else {
-          this.noti.error('Error', 'No se pudo registrar la asistencia: ' + (err.error?.detail || err.message || 'Error desconocido'));
+          this.noti.error(
+            'Error al registrar', 
+            err.error?.detail || 'No se pudo registrar la participación. Intente nuevamente.'
+          );
         }
       }
     });
   }
   
   /**
-   * Valida que los datos necesarios para registrar asistencia estén completos
+   * Valida que los datos necesarios para registrar participación estén completos
    */
-  validarDatosAsistencia(): boolean {
+  validarDatosParticipacion(): boolean {
     if (!this.filtrosRegistro.course) {
       this.noti.error('Campo requerido', 'Seleccione un curso');
       return false;
@@ -319,7 +323,7 @@ export class GestionAsistenciaComponent implements OnInit {
       from_date: '',
       to_date: '',
       period: '',
-      status: '',
+      level: '',
       search: ''
     };
     this.resultadosBusqueda = false;
@@ -330,7 +334,7 @@ export class GestionAsistenciaComponent implements OnInit {
    */
   limpiarFiltrosRegistro(): void {
     this.filtrosRegistro = {
-      course: '', // Ahora es un string vacío para el input de texto
+      course: '',
       subject: '',
       date: new Date(),
       period: 1,
@@ -350,7 +354,7 @@ export class GestionAsistenciaComponent implements OnInit {
   }
   
   /**
-   * Verifica si un estudiante ya tiene asistencia registrada
+   * Verifica si un estudiante ya tiene participación registrada
    */
   estaRegistrado(estudiante: any): boolean {
     if (!estudiante || !this.filtrosRegistro.subject || !this.filtrosRegistro.date) {
@@ -372,7 +376,6 @@ export class GestionAsistenciaComponent implements OnInit {
    * Valida que el código de curso tenga el formato correcto (S1-S6, P1-P6)
    */
   validarCodigoCurso(codigo: string): boolean {
-    // Verificar que el código sea del tipo S1-S6 o P1-P6
     return /^[SP][1-6]$/i.test(codigo);
   }
 }

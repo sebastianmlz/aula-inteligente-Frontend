@@ -1,0 +1,204 @@
+<!-- filepath: c:\Users\sebas\OneDrive\Documentos\UAGRM\semestre 7\Sistema de Informacion 2\Parcial 2\aula-inteligente-Frontend\src\app\modules\gestion-usuarios\pages\gestion-backup\gestion-backup.component.html -->
+<div class="p-4">
+  <div class="w-full bg-cyan-700 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
+    <i class="pi pi-database text-2xl text-white mr-3"></i>
+    <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Copias de Seguridad</h2>
+  </div>
+
+  <!-- Toast para mensajes -->
+  <p-toast></p-toast>
+  
+  <!-- Diálogo de confirmación -->
+  <p-confirmDialog [style]="{width: '450px'}" 
+    acceptButtonStyleClass="p-button-danger" 
+    rejectButtonStyleClass="p-button-secondary">
+  </p-confirmDialog>
+
+  <!-- Sección de información y estadísticas -->
+  <div class="p-card p-4 mb-6 shadow-lg">
+    <div class="flex flex-col md:flex-row justify-between items-center">
+      <div class="mb-4 md:mb-0">
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Sistema de Respaldo</h3>
+        <p class="text-gray-600">
+          Gestione las copias de seguridad de la base de datos. Recomendamos crear backups periódicamente
+          para prevenir pérdida de datos.
+        </p>
+        
+        <!-- Estadísticas de backups -->
+        <div class="mt-3 flex flex-wrap gap-4">
+          <div class="flex items-center bg-blue-50 p-2 rounded-lg">
+            <i class="pi pi-save text-blue-500 mr-2"></i>
+            <span class="text-sm font-medium">Total: <span class="font-bold">{{backups.length}}</span> backups</span>
+          </div>
+          
+          <div *ngIf="backups.length > 0" class="flex items-center bg-green-50 p-2 rounded-lg">
+            <i class="pi pi-calendar text-green-500 mr-2"></i>
+            <span class="text-sm font-medium">Último: <span class="font-bold">{{getUltimaFechaBackup() | date:'dd/MM/yyyy'}}</span></span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button pButton 
+          label="Crear Backup" 
+          icon="pi pi-plus-circle" 
+          class="p-button-primary p-button-raised" 
+          [loading]="creatingBackup"
+          (click)="crearBackup()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección para restaurar backup -->
+  <div class="p-card p-4 mb-6 shadow-lg">
+    <div class="flex flex-col md:flex-row justify-between items-center">
+      <div class="mb-4 md:mb-0">
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Restaurar Base de Datos</h3>
+        <p class="text-gray-600">
+          Restaure la base de datos desde un archivo de respaldo previamente guardado.
+          <span class="text-amber-600 font-semibold">Esta acción reemplazará todos los datos actuales.</span>
+        </p>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row items-center gap-3">
+        <p-fileUpload 
+          mode="basic" 
+          chooseLabel="Seleccionar SQL" 
+          [auto]="false"
+          accept=".sql,.dump"
+          [maxFileSize]="50000000" 
+          styleClass="p-button-outlined p-button-secondary"
+          [disabled]="restoringBackup"
+          (onSelect)="onBackupFileSelected($event)"
+          [showCancelButton]="false">
+        </p-fileUpload>
+        
+        <button 
+          pButton 
+          label="Restaurar" 
+          icon="pi pi-refresh" 
+          class="p-button-warning" 
+          [disabled]="!selectedBackupFile || restoringBackup"
+          [loading]="restoringBackup"
+          (click)="confirmarRestaurarBackup()">
+        </button>
+      </div>
+    </div>
+    
+    <div *ngIf="selectedBackupFile" class="mt-3 flex items-center bg-blue-50 p-3 rounded-lg">
+      <i class="pi pi-file text-blue-600 mr-2"></i>
+      <div>
+        <p class="font-semibold text-blue-800">{{ selectedBackupFile.name }}</p>
+        <p class="text-xs text-blue-600">{{ formatFileSize(selectedBackupFile.size) }} | Seleccionado para restaurar</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de backups disponibles -->
+  <div class="p-card shadow-lg">
+    <p-toolbar styleClass="mb-4 gap-2">
+      <ng-template pTemplate="start">
+        <div class="flex items-center">
+          <i class="pi pi-list text-blue-500 mr-2 text-xl"></i>
+          <h3 class="m-0 text-lg font-semibold">Copias de seguridad disponibles</h3>
+        </div>  
+      </ng-template>
+      <ng-template pTemplate="end">
+        <button pButton 
+          label="Actualizar" 
+          icon="pi pi-refresh" 
+          class="p-button-outlined" 
+          [loading]="loading"
+          (click)="cargarBackups()">
+        </button>
+      </ng-template>
+    </p-toolbar>
+
+    <div *ngIf="loading" class="flex justify-center p-6">
+      <p-progressSpinner strokeWidth="4" [style]="{width: '50px', height: '50px'}"></p-progressSpinner>
+    </div>
+
+    <div *ngIf="!loading && backups.length === 0" class="text-center my-6 p-4">
+      <i class="pi pi-inbox text-5xl text-gray-300 mb-3"></i>
+      <h4 class="text-xl font-semibold text-gray-600 mb-2">No hay copias de seguridad</h4>
+      <p class="text-gray-500">
+        No se encontraron copias de seguridad disponibles. Cree una nueva haciendo clic en "Crear Backup".
+      </p>
+    </div>
+
+    <p-table 
+      *ngIf="!loading && backups.length > 0"
+      [value]="backups" 
+      [tableStyle]="{'min-width': '50rem'}"
+      styleClass="p-datatable-sm p-datatable-striped"
+      [scrollable]="true">
+      <ng-template pTemplate="header">
+        <tr class="bg-gray-50">
+          <th style="width: 280px">Nombre</th>
+          <th>Fecha de creación</th>
+          <th style="width: 120px">Tamaño</th>
+          <th style="width: 150px" class="text-center">Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-backup>
+        <tr>
+          <td>
+            <div class="flex align-items-center">
+              <i class="pi pi-file-export text-blue-500 mr-2"></i>
+              <span class="font-medium">{{ backup.filename }}</span>
+            </div>
+          </td>
+          <td>
+            {{ backup.created_at | date:'dd/MM/yyyy HH:mm:ss' }}
+            <span *ngIf="esBackupReciente(backup.created_at)" class="ml-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
+              Nuevo
+            </span>
+          </td>
+          <td>
+            <span class="bg-blue-50 text-blue-800 py-1 px-2 rounded-lg text-xs">
+              {{ formatFileSize(backup.size) }}
+            </span>
+          </td>
+          <td>
+            <div class="flex justify-center gap-2">
+              <button 
+                pButton
+                type="button" 
+                icon="pi pi-download" 
+                class="p-button-sm p-button-success"
+                pTooltip="Descargar"
+                tooltipPosition="top"
+                [loading]="backup.downloading"
+                (click)="descargarBackup(backup)">
+              </button>
+              <button 
+                pButton 
+                type="button" 
+                icon="pi pi-trash" 
+                class="p-button-sm p-button-danger"
+                pTooltip="Eliminar"
+                tooltipPosition="top"
+                [disabled]="backup.deleting"
+                (click)="eliminarBackup(backup)">
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+    
+    <!-- Footer con información adicional -->
+    <div *ngIf="!loading && backups.length > 0" class="p-3 bg-gray-50 text-gray-600 text-sm">
+      <div class="flex justify-between items-center">
+        <span>
+          <i class="pi pi-info-circle mr-2"></i>
+          Total: {{backups.length}} copias disponibles
+        </span>
+        <span>
+          <i class="pi pi-cloud mr-2"></i>
+          Almacenamiento en S3
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
