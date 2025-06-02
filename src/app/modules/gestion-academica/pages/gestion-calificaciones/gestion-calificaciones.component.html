@@ -1,490 +1,793 @@
+<p-toast></p-toast>
+
 <div class="p-4">
-  <div class="w-full bg-blue-800 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
-    <i class="pi pi-chart-bar text-2xl text-white mr-3"></i>
-    <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Calificaciones</h2>
-  </div>
+  <div class="card">
+    <h2 class="text-2xl font-bold text-blue-800 mb-4">
+      <i class="pi pi-book text-blue-600 mr-2"></i>
+      Gestión de Calificaciones
+    </h2>
 
-  <!-- Tabs para alternar entre Consulta y Registro -->
-  <p-tabView [(activeIndex)]="activeTab" *ngIf="isTeacher">
-    <!-- TAB 1: CONSULTA DE CALIFICACIONES -->
-    <p-tabPanel header="Consulta de Calificaciones">
-      <!-- Contenido actual del formulario de búsqueda -->
-      <div class="p-card p-4 mb-6 shadow-lg">
-        <form (ngSubmit)="buscar()" class="flex flex-wrap gap-4 items-end">
-          <div class="flex flex-col w-48">
-            <label class="font-semibold mb-1">Estudiante ID</label>
-            <input
-              pInputText
-              [(ngModel)]="filtros.student"
-              name="student"
-              placeholder="ID del estudiante"
-              class="w-full" />
-          </div>
-          
-          <div class="flex flex-col w-48">
-            <label class="font-semibold mb-1">Materia</label>
-            <p-dropdown
-              [options]="subjects"
-              optionLabel="name"
-              optionValue="id"
-              [(ngModel)]="filtros.subject"
-              name="subject"
-              placeholder="Todas las materias"
-              [showClear]="true"
-              class="w-full">
-            </p-dropdown>
-          </div>
-          
-          <div class="flex flex-col w-48">
-            <label class="font-semibold mb-1">Curso</label>
-            <p-dropdown
-              [options]="courses"
-              optionLabel="name"
-              optionValue="id"
-              [(ngModel)]="filtros.course"
-              name="course"
-              placeholder="Todos los cursos"
-              [showClear]="true"
-              class="w-full">
-            </p-dropdown>
-          </div>
-          
-          <div class="flex flex-col w-32">
-            <label class="font-semibold mb-1">Nota mínima</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="filtros.min_value"
-              name="min_value"
-              placeholder="Mínima"
-              min="0"
-              max="100"
-              class="w-full" />
-          </div>
-          
-          <div class="flex flex-col w-32">
-            <label class="font-semibold mb-1">Nota máxima</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="filtros.max_value"
-              name="max_value"
-              placeholder="Máxima"
-              min="0"
-              max="100"
-              class="w-full" />
-          </div>
-          
-          <div class="flex flex-col w-48">
-            <label class="font-semibold mb-1">Buscar</label>
-            <input
-              pInputText
-              [(ngModel)]="filtros.search"
-              name="search"
-              placeholder="Buscar..."
-              class="w-full" />
-          </div>
-          
-          <div class="flex gap-2">
-            <button pButton type="submit" label="Buscar" icon="pi pi-search" class="p-button-primary"></button>
-            <button pButton type="button" label="Limpiar" icon="pi pi-filter-slash" class="p-button-secondary" 
-                    (click)="limpiarFiltros()"></button>
-          </div>
-        </form>
-      </div>
-
-      <div class="p-card shadow-lg">
-        <p-table
-          [value]="calificaciones"
-          [rows]="pageSize"
-          [paginator]="true"
-          [lazy]="true"
-          [totalRecords]="totalRecords"
-          (onPage)="onPageChange($event)"
-          [loading]="loading"
-          [rowsPerPageOptions]="[5, 10, 20, 50]"
-          [first]="(currentPage-1) * pageSize"
-          class="min-w-[700px]">
-          <ng-template pTemplate="header">
-            <tr class="bg-blue-800 text-white">
-              <th class="px-4 py-2">ID</th>
-              <th class="px-4 py-2">Estudiante</th>
-              <th class="px-4 py-2">Materia</th>
-              <th class="px-4 py-2">Curso</th>
-              <th class="px-4 py-2">Nota</th>
-              <th class="px-4 py-2">Fecha</th>
-              <th class="px-4 py-2 text-center">Acciones</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-calificacion>
-            <tr>
-              <td class="border px-4 py-2">{{ calificacion.id }}</td>
-              <td class="border px-4 py-2">{{ calificacion.student_name }}</td>
-              <td class="border px-4 py-2">{{ calificacion.subject_name }}</td>
-              <td class="border px-4 py-2">{{ calificacion.course_name }}</td>
-              <td class="border px-4 py-2">
-                <span [ngClass]="{
-                  'text-red-600 font-bold': calificacion.value < 51,
-                  'text-yellow-600 font-bold': calificacion.value >= 51 && calificacion.value < 71,
-                  'text-green-600 font-bold': calificacion.value >= 71
-                }">
-                  {{ calificacion.value }}
-                </span>
-              </td>
-              <td class="border px-4 py-2">{{ calificacion.date | date:'dd/MM/yyyy' }}</td>
-              <td class="border px-4 py-2 text-center">
-                <div class="flex gap-2 justify-center">
-                  <button pButton icon="pi pi-eye" class="p-button-rounded p-button-info p-button-sm"
-                    (click)="verDetalleCalificacion(calificacion)" 
-                    pTooltip="Ver detalle" tooltipPosition="top"></button>
-                  <button pButton icon="pi pi-list" class="p-button-rounded p-button-success p-button-sm"
-                    (click)="verHistorialCalificaciones(calificacion)" 
-                    pTooltip="Historial completo" tooltipPosition="top"></button>
+    <!-- Vista con tabs para evaluaciones y calificaciones -->
+    <p-tabView [(activeIndex)]="activeTabIndex">
+      <!-- Tab de Evaluaciones -->
+      <p-tabPanel header="Evaluaciones">
+        <div class="card">
+          <!-- Filtros para evaluaciones -->
+          <p-toolbar styleClass="mb-4">
+            <ng-template pTemplate="left">
+              <div class="flex flex-wrap gap-3 items-end">
+                <div class="field mb-0">
+                  <label for="materia-eval" class="block text-sm font-medium mb-1">Materia <span class="text-red-500">*</span></label>
+                  <p-dropdown 
+                    [options]="materias()" 
+                    [(ngModel)]="filtrosEvaluacion.subject" 
+                    optionLabel="name" 
+                    optionValue="id"
+                    placeholder="Seleccione una materia" 
+                    [style]="{'width':'220px'}"
+                    styleClass="w-full"
+                    [disabled]="loadingMasterData()"
+                    id="materia-eval">
+                  </p-dropdown>
                 </div>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="7" class="text-center text-gray-400 py-4">
-                No hay calificaciones para mostrar con los filtros actuales.
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </div>
 
-      <!-- Modal de detalle de calificación individual -->
-      <p-dialog [(visible)]="detalleModalVisible" [modal]="true" [closable]="true" [style]="{'width':'500px'}">
-        <ng-template pTemplate="header">
-          <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl w-full">
-            <h2 class="text-xl font-bold text-white text-center">Detalle de Calificación</h2>
-          </div>
-        </ng-template>
-        <div class="p-6 bg-white/90 rounded-b-2xl" *ngIf="detalleCalificacion">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">ID:</div>
-              <div>{{ detalleCalificacion.id }}</div>
-            </div>
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">Estudiante:</div>
-              <div>{{ detalleCalificacion.student_name }}</div>
-            </div>
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">Materia:</div>
-              <div>{{ detalleCalificacion.subject_name }}</div>
-            </div>
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">Curso:</div>
-              <div>{{ detalleCalificacion.course_name }}</div>
-            </div>
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">Valor:</div>
-              <div 
-                [ngClass]="{
-                  'text-red-600 font-bold': detalleCalificacion.value < 51,
-                  'text-yellow-600 font-bold': detalleCalificacion.value >= 51 && detalleCalificacion.value < 71,
-                  'text-green-600 font-bold': detalleCalificacion.value >= 71
-                }">
-                {{ detalleCalificacion.value }}
+                <div class="field mb-0">
+                  <label for="curso-eval" class="block text-sm font-medium mb-1">Curso</label>
+                  <p-dropdown 
+                    [options]="cursos()" 
+                    [(ngModel)]="filtrosEvaluacion.course" 
+                    optionLabel="name" 
+                    optionValue="id"
+                    placeholder="Seleccione un curso" 
+                    [style]="{'width':'220px'}"
+                    styleClass="w-full"
+                    [disabled]="loadingMasterData()"
+                    id="curso-eval">
+                  </p-dropdown>
+                </div>
+
+                <div class="field mb-0">
+                  <label for="trimestre-eval" class="block text-sm font-medium mb-1">Trimestre <span class="text-red-500">*</span></label>
+                  <p-dropdown 
+                    [options]="trimestres()" 
+                    [(ngModel)]="filtrosEvaluacion.trimester" 
+                    optionLabel="name" 
+                    optionValue="id"
+                    placeholder="Seleccione un trimestre" 
+                    [style]="{'width':'220px'}"
+                    styleClass="w-full"
+                    [disabled]="loadingMasterData() || trimestres().length === 0"
+                    id="trimestre-eval">
+                  </p-dropdown>
+                </div>
+
+                <div class="field mb-0">
+                  <label for="tipo-eval" class="block text-sm font-medium mb-1">Tipo</label>
+                  <p-dropdown 
+                    [options]="tiposEvaluacion" 
+                    [(ngModel)]="filtrosEvaluacion.assessmentType" 
+                    optionLabel="label" 
+                    optionValue="value"
+                    placeholder="Tipo de evaluación" 
+                    [style]="{'width':'180px'}"
+                    styleClass="w-full"
+                    id="tipo-eval">
+                  </p-dropdown>
+                </div>
+
+                <div>
+                  <button 
+                    pButton 
+                    label="Buscar" 
+                    icon="pi pi-search" 
+                    (click)="cargarEvaluaciones()"
+                    [loading]="loadingAssessments()"
+                    [disabled]="loadingMasterData() || !filtrosEvaluacion.subject || !filtrosEvaluacion.trimester"
+                    class="mr-2">
+                  </button>
+                  <button 
+                    pButton 
+                    label="Limpiar" 
+                    icon="pi pi-filter-slash" 
+                    (click)="filtrosEvaluacion = { subject: undefined, course: undefined, trimester: undefined, assessmentType: undefined }"
+                    class="p-button-outlined">
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="mb-4">
-              <div class="font-semibold text-blue-900">Fecha:</div>
-              <div>{{ detalleCalificacion.date | date:'dd/MM/yyyy HH:mm' }}</div>
-            </div>
-          </div>
-          
-          <div class="mb-4 col-span-2">
-            <div class="font-semibold text-blue-900">Descripción:</div>
-            <div class="mt-1 p-2 bg-gray-50 rounded">{{ detalleCalificacion.description || 'Sin descripción' }}</div>
-          </div>
-          
-          <div class="mb-4 col-span-2">
-            <div class="font-semibold text-blue-900">Observaciones:</div>
-            <div class="mt-1 p-2 bg-gray-50 rounded">{{ detalleCalificacion.observations || 'Sin observaciones' }}</div>
-          </div>
-          
-          <div class="flex justify-end mt-4">
-            <button pButton type="button" label="Cerrar" class="p-button-secondary" (click)="detalleModalVisible=false"></button>
-          </div>
-        </div>
-      </p-dialog>
-      
-      <!-- Modal de historial completo de calificaciones -->
-      <p-dialog [(visible)]="historialModalVisible" [modal]="true" [closable]="true" 
-        [style]="{'width':'80vw', 'max-width':'1000px'}" [draggable]="false" [resizable]="false">
-        <ng-template pTemplate="header">
-          <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-blue-400 py-4 px-6 rounded-t-2xl w-full">
-            <h2 class="text-xl font-bold text-white text-center">
-              Historial Académico - {{ estudianteSeleccionado?.student_name || 'Estudiante' }}
-            </h2>
-          </div>
-        </ng-template>
-        
-        <div class="p-6 bg-white/90 rounded-b-2xl">
-          <div *ngIf="loadingHistorial" class="flex justify-center p-4">
-            <i class="pi pi-spin pi-spinner text-blue-600 text-4xl"></i>
-          </div>
-          
-          <div *ngIf="!loadingHistorial && historialCalificaciones.length === 0" class="text-center p-4 text-gray-500">
-            No hay calificaciones registradas para este estudiante.
-          </div>
-          
-          <div *ngIf="!loadingHistorial && historialCalificaciones.length > 0" class="mb-4">
-            <!-- Acordeón por año -->
-            <p-accordion>
-              <p-accordionTab *ngFor="let ano of historialPorAno | keyvalue" 
-                              [header]="'Año Académico ' + getAnoKey(ano)">
-                
-                <!-- TabView por período dentro del año -->
-                <p-tabView>
-                  <p-tabPanel *ngFor="let periodo of getPeriodos(ano.value)" 
-                              [header]="getPeriodoKey(periodo)">
-                    
-                    <!-- Tabla de calificaciones del período -->
-                    <div class="overflow-x-auto">
-                      <table class="min-w-full bg-white rounded-lg overflow-hidden">
-                        <thead class="bg-blue-100">
-                          <tr>
-                            <th class="px-4 py-2 text-left">Materia</th>
-                            <th class="px-4 py-2 text-left">Descripción</th>
-                            <th class="px-4 py-2 text-center">Nota</th>
-                            <th class="px-4 py-2 text-center">Fecha</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr *ngFor="let calificacion of getPeriodoValue(periodo)" 
-                              class="border-b hover:bg-gray-50">
-                            <td class="px-4 py-2">{{ calificacion.subject_name || 'N/D' }}</td>
-                            <td class="px-4 py-2">{{ calificacion.comment || 'Sin descripción' }}</td>
-                            <td class="px-4 py-2 text-center">
-                              <span class="px-2 py-1 rounded-full text-white" 
-                                    [ngClass]="{
-                                      'bg-red-500': calificacion.value < 51,
-                                      'bg-yellow-500': calificacion.value >= 51 && calificacion.value < 71,
-                                      'bg-green-500': calificacion.value >= 71
-                                    }">
-                                {{ calificacion.value }}
-                              </span>
-                            </td>
-                            <td class="px-4 py-2 text-center">{{ calificacion.created_at | date:'dd/MM/yyyy' }}</td>
-                          </tr>
-                        </tbody>
-                        <tfoot class="bg-gray-50">
-                          <tr>
-                            <td class="px-4 py-2 font-bold" colspan="2">Promedio del período:</td>
-                            <td class="px-4 py-2 text-center font-bold" colspan="2">
-                              <span class="px-3 py-1 rounded-full text-white"
-                                    [ngClass]="{
-                                      'bg-red-500': calcularPromedioNotas(getPeriodoValue(periodo)) < 51,
-                                      'bg-yellow-500': calcularPromedioNotas(getPeriodoValue(periodo)) >= 51 && calcularPromedioNotas(getPeriodoValue(periodo)) < 71,
-                                      'bg-green-500': calcularPromedioNotas(getPeriodoValue(periodo)) >= 71
-                                    }">
-                                {{ calcularPromedioNotas(getPeriodoValue(periodo)) }}
-                              </span>
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                    
-                  </p-tabPanel>
-                </p-tabView>
-                
-              </p-accordionTab>
-            </p-accordion>
-          </div>
-          
-          <div class="flex justify-end mt-6">
-            <button pButton type="button" label="Cerrar" class="p-button-secondary" 
-                    (click)="historialModalVisible=false"></button>
-          </div>
-        </div>
-      </p-dialog>
-    </p-tabPanel>
-    
-    <!-- TAB 2: REGISTRO DE CALIFICACIONES (solo visible para profesores) -->
-    <p-tabPanel header="Registrar Calificación">
-      <div class="p-card p-4 mb-6 shadow-lg">
-        <h3 class="text-xl font-bold mb-4 text-green-800">Nueva Calificación</h3>
-        
-        <!-- Formulario para la búsqueda de estudiantes -->
-        <form (ngSubmit)="onBuscarClick()" class="flex flex-wrap items-end gap-4 p-4 pb-2">
-          <!-- Campo de búsqueda -->
-          <div class="flex-1 min-w-[300px]">
-            <label class="font-semibold text-gray-700 mb-1 block">
-              Buscar estudiante <i class="pi pi-search text-blue-700 ml-2"></i>
-            </label>
-            <span class="p-input-icon-left w-full">
-              <i class="pi pi-search text-blue-700"></i>
-              <input
-                pInputText
-                [(ngModel)]="filtrosRegistro.search"
-                name="search"
-                placeholder="Nombre, ID, S6, P6, etc."
-                class="w-full rounded-lg border-2 border-blue-300 focus:border-blue-600"
-              />
-            </span>
-          </div>
-          
-          <button
-            pButton
-            type="submit"
-            label="Buscar"
-            icon="pi pi-search"
-            class="p-button-success px-5 h-12"
-          ></button>
-        </form>
-        
-        <!-- Campos adicionales para el registro de calificación -->
-        <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Campo de Curso -->
-          <div>
-            <label class="font-semibold text-gray-700 mb-1 block">
-              Curso <span class="text-red-500">*</span>
-            </label>
-            <p-dropdown
-              [options]="courses"
-              [(ngModel)]="filtrosRegistro.course"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Seleccione un curso"
-              [showClear]="true"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-          
-          <!-- Campo de Materia -->
-          <div>
-            <label class="font-semibold text-gray-700 mb-1 block">
-              Materia <span class="text-red-500">*</span>
-            </label>
-            <p-dropdown
-              [options]="subjects"
-              [(ngModel)]="filtrosRegistro.subject"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Seleccione una materia"
-              [showClear]="true"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-          
-          <!-- Campo de Título/Comentario -->
-          <div>
-            <label class="font-semibold text-gray-700 mb-1 block">
-              Título de la Calificación <span class="text-red-500">*</span>
-            </label>
-            <input
-              pInputText
-              [(ngModel)]="filtrosRegistro.comment"
-              placeholder="Ej: Examen Parcial, Tarea 1, etc."
-              class="w-full"
-            />
-          </div>
-          
-          <!-- Campo de Periodo -->
-          <div>
-            <label class="font-semibold text-gray-700 mb-1 block">
-              Periodo <span class="text-red-500">*</span>
-            </label>
-            <p-dropdown
-              [options]="[
-                {label: 'Periodo 2024', value: 1},
-                {label: 'Periodo 2025', value: 2}
-              ]"
-              [(ngModel)]="filtrosRegistro.period"
-              placeholder="Seleccione un periodo"
-              [showClear]="false"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-        </div>
-        
-        <!-- Tabla de estudiantes -->
-        <div class="mt-4" *ngIf="estudiantes.length > 0">
-          <p-table [value]="estudiantes" [loading]="loadingEstudiantes">
+            </ng-template>
+
+            <ng-template pTemplate="right">
+              <button 
+                pButton 
+                label="Nueva Evaluación" 
+                icon="pi pi-plus" 
+                (click)="abrirNuevaEvaluacion()"
+                class="p-button-success">
+              </button>
+            </ng-template>
+          </p-toolbar>
+
+          <!-- Tabla de evaluaciones -->
+          <p-table 
+            [value]="evaluaciones()" 
+            [loading]="loadingAssessments()"
+            [paginator]="true"
+            [rows]="pageSizeAssessments"
+            [totalRecords]="totalEvaluaciones()"
+            [rowsPerPageOptions]="[5, 10, 20, 50]"
+            [showCurrentPageReport]="true"
+            currentPageReportTemplate="{first} a {last} de {totalRecords} evaluaciones"
+            (onPage)="onPageChangeAssessments($event)"
+            [rowHover]="true"
+            styleClass="p-datatable-sm p-datatable-striped">
             <ng-template pTemplate="header">
               <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th class="text-center">Calificación (0-100)</th>
-                <th class="text-center">Acción</th>
+                <th style="width: 40%">Nombre</th>
+                <th style="width: 15%">Tipo</th>
+                <th style="width: 12%">Fecha</th>
+                <th style="width: 15%">Curso</th>
+                <th style="width: 8%">Máx. Pts</th>
+                <th style="width: 10%">Acciones</th>
               </tr>
             </ng-template>
-            <ng-template pTemplate="body" let-estudiante>
+            <ng-template pTemplate="body" let-evaluacion>
               <tr>
-                <td>{{ estudiante.student_id }}</td>
-                <td>{{ estudiante.full_name }}</td>
-                <td class="text-center">
-                  <!-- Solo visible si no está registrado -->
-                  <div *ngIf="!estaRegistrado(estudiante)" class="flex justify-center">
-                    <input
-                      pInputText
-                      type="number"
-                      [(ngModel)]="notasEstudiantes[estudiante.user_id]"
-                      placeholder="0-100"
-                      min="0"
-                      max="100"
-                      class="w-20 text-center"
-                    />
-                  </div>
-                  
-                  <!-- Si ya está registrado, mostrar la nota -->
-                  <span *ngIf="estaRegistrado(estudiante)" 
-                        [ngClass]="{
-                          'text-red-600 font-bold': notasRegistradas[estudiante.user_id] < 51,
-                          'text-yellow-600 font-bold': notasRegistradas[estudiante.user_id] >= 51 && notasRegistradas[estudiante.user_id] < 71,
-                          'text-green-600 font-bold': notasRegistradas[estudiante.user_id] >= 71
-                        }">
-                    {{ notasRegistradas[estudiante.user_id] }}
+                <td>{{ evaluacion.name }}</td>
+                <td>
+                  <span 
+                    [class]="'text-white px-2 py-1 rounded-lg text-xs ' + getAssessmentTypeColor(evaluacion.assessment_type)"
+                    style="display: inline-block">
+                    {{ getAssessmentTypeLabel(evaluacion.assessment_type) }}
                   </span>
                 </td>
-                <td class="text-center">
-                  <!-- Si no está registrado, mostrar botones -->
-                  <div *ngIf="!estaRegistrado(estudiante)" class="flex justify-center">
-                    <button pButton type="button" 
-                      icon="pi pi-save" 
-                      class="p-button-success p-button-sm"
-                      pTooltip="Guardar calificación"
+                <td>{{ formatDate(evaluacion.date) }}</td>
+                <td>{{ evaluacion.course?.name }}</td>
+                <td class="text-center">{{ evaluacion.max_score }}</td>
+                <td>
+                  <div class="flex gap-2 justify-center">
+                    <button 
+                      pButton 
+                      icon="pi pi-users" 
+                      class="p-button-rounded p-button-success p-button-sm"
+                      pTooltip="Calificar estudiantes"
                       tooltipPosition="top"
-                      [disabled]="!notasEstudiantes[estudiante.user_id] || notasEstudiantes[estudiante.user_id] < 0 || notasEstudiantes[estudiante.user_id] > 100"
-                      (click)="registrarCalificacion(estudiante)"></button>
+                      (click)="abrirCalificarEstudiantes(evaluacion)">
+                    </button>
+                    <button 
+                      pButton 
+                      icon="pi pi-eye" 
+                      class="p-button-rounded p-button-info p-button-sm"
+                      pTooltip="Ver detalles"
+                      tooltipPosition="top"
+                      (click)="verDetalleEvaluacion(evaluacion)">
+                    </button>
+                    <button 
+                      pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-rounded p-button-warning p-button-sm"
+                      pTooltip="Editar"
+                      tooltipPosition="top"
+                      (click)="abrirEditarEvaluacion(evaluacion)">
+                    </button>
                   </div>
-                  
-                  <!-- Si ya está registrado, mostrar mensaje -->
-                  <span *ngIf="estaRegistrado(estudiante)" class="text-green-600 font-semibold">
-                    <i class="pi pi-check-circle mr-2"></i> Registrado
-                  </span>
                 </td>
               </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="4" class="text-center py-4">
-                  No hay estudiantes disponibles.
+                <td colspan="6" class="text-center p-4">
+                  <div class="flex flex-column align-items-center">
+                    <i class="pi pi-folder-open text-5xl text-gray-400 mb-3"></i>
+                    <span class="text-gray-500 mb-2">No se encontraron evaluaciones</span>
+                    <span class="text-gray-400 text-sm">Seleccione filtros y haga clic en "Buscar"</span>
+                  </div>
                 </td>
               </tr>
             </ng-template>
           </p-table>
         </div>
-      </div>
-    </p-tabPanel>
-  </p-tabView>
+      </p-tabPanel>
 
-  <!-- Si no es profesor, mostrar solo la sección de consulta -->
-  <div *ngIf="!isTeacher">
-    <!-- Contenido actual del formulario de búsqueda -->
-    <div class="p-card p-4 mb-6 shadow-lg">
-      <!-- Contenido actual del formulario -->
-      <!-- ... -->
+      <!-- Tab de Calificaciones -->
+      <p-tabPanel header="Calificaciones">
+        <div class="card">
+          <!-- Filtros para calificaciones -->
+          <p-toolbar styleClass="mb-4">
+            <ng-template pTemplate="left">
+              <div class="flex flex-wrap gap-3 items-end">
+                <!-- Búsqueda de estudiante -->
+                <div class="field mb-0">
+                  <label for="student-search" class="block text-sm font-medium mb-1">Estudiante</label>
+                  <div class="p-inputgroup" style="width: 240px">
+                    <span class="p-inputgroup-addon">
+                      <i class="pi pi-user"></i>
+                    </span>
+                    <input 
+                      type="text" 
+                      pInputText 
+                      [(ngModel)]="studentSearchQuery"
+                      (input)="searchStudents()"
+                      placeholder="Buscar estudiante..."
+                      [disabled]="!!selectedStudent()"
+                      id="student-search"
+                      class="p-inputtext-sm"
+                    />
+                    <button 
+                      *ngIf="selectedStudent()" 
+                      pButton 
+                      type="button" 
+                      icon="pi pi-times" 
+                      class="p-button-danger" 
+                      (click)="clearSelectedStudent()">
+                    </button>
+                  </div>
+                  
+                  <!-- Resultados de búsqueda -->
+                  <div *ngIf="filteredStudents().length > 0" class="absolute z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto" style="width: 240px">
+                    <ul class="py-1 px-0 m-0 list-none">
+                      <li *ngFor="let student of filteredStudents()" 
+                          class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100"
+                          (click)="selectStudent(student)">
+                        <div class="font-medium">{{ student.full_name }}</div>
+                        <div class="text-xs text-gray-500">{{ student.student_id }} - {{ student.current_course_name }}</div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Materia -->
+                <div class="field mb-0">
+                  <label for="materia-cal" class="block text-sm font-medium mb-1">Materia</label>
+                  <p-dropdown 
+                    [options]="materias()" 
+                    [(ngModel)]="filtrosCalificacion.subject" 
+                    optionLabel="name" 
+                    optionValue="id"
+                    placeholder="Seleccione una materia" 
+                    [style]="{'width':'220px'}"
+                    styleClass="w-full"
+                    [disabled]="loadingMasterData()"
+                    id="materia-cal">
+                  </p-dropdown>
+                </div>
+
+                <!-- Periodo académico -->
+                <div class="field mb-0">
+                  <label for="periodo-cal" class="block text-sm font-medium mb-1">Periodo Académico <span class="text-red-500">*</span></label>
+                  <p-dropdown 
+                    [options]="periodos()" 
+                    [(ngModel)]="filtrosCalificacion.period" 
+                    optionLabel="name" 
+                    optionValue="id"
+                    placeholder="Seleccione un periodo" 
+                    [style]="{'width':'220px'}"
+                    styleClass="w-full"
+                    [disabled]="loadingMasterData()"
+                    (onChange)="onPeriodoChange($event.value)"
+                    id="periodo-cal">
+                  </p-dropdown>
+                </div>
+
+                <!-- Botones -->
+                <div>
+                  <button 
+                    pButton 
+                    label="Buscar" 
+                    icon="pi pi-search" 
+                    (click)="cargarCalificaciones()"
+                    [loading]="loadingGrades()"
+                    [disabled]="loadingMasterData() || (!filtrosCalificacion.student && !filtrosCalificacion.subject) || !filtrosCalificacion.period"
+                    class="mr-2">
+                  </button>
+                  <button 
+                    pButton 
+                    label="Limpiar" 
+                    icon="pi pi-filter-slash" 
+                    (click)="filtrosCalificacion = { student: undefined, subject: undefined, period: undefined, assessmentItem: undefined }"
+                    class="p-button-outlined">
+                  </button>
+                </div>
+              </div>
+            </ng-template>
+
+            <ng-template pTemplate="right">
+              <button 
+                pButton 
+                label="Registrar Calificación" 
+                icon="pi pi-plus" 
+                (click)="activeTabIndex = 0; messageService.add({severity: 'info', summary: 'Información', detail: 'Busque una evaluación y use el botón de calificar'})"
+                class="p-button-success">
+              </button>
+            </ng-template>
+          </p-toolbar>
+
+          <!-- Tabla de calificaciones -->
+          <p-table 
+            [value]="calificaciones()" 
+            [loading]="loadingGrades()"
+            [paginator]="true"
+            [rows]="pageSizeGrades"
+            [totalRecords]="totalCalificaciones()"
+            [rowsPerPageOptions]="[5, 10, 20, 50]"
+            [showCurrentPageReport]="true"
+            currentPageReportTemplate="{first} a {last} de {totalRecords} calificaciones"
+            (onPage)="onPageChangeGrades($event)"
+            [rowHover]="true"
+            styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 18%">Estudiante</th>
+                <th style="width: 15%">Materia</th>
+                <th style="width: 27%">Evaluación</th>
+                <th style="width: 15%">Fecha</th>
+                <th style="width: 10%">Calificación</th>
+                <th style="width: 15%">Acciones</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-calificacion>
+              <tr>
+                <td>{{ calificacion.student?.full_name }}</td>
+                <td>{{ calificacion.subject?.name }}</td>
+                <td>{{ calificacion.assessment_item?.name }}</td>
+                <td>{{ formatDate(calificacion.date_recorded) }}</td>
+                <td class="text-center">
+                  <div class="flex items-center">
+                    <p-progressBar 
+                      [value]="parseFloat(calificacion.value)" 
+                      [showValue]="false" 
+                      [style]="{'width':'60px', 'height':'8px'}"
+                      class="mr-2"
+                      [class]="getGradeColor(calificacion.value)">
+                    </p-progressBar>
+                    <span class="font-bold">{{ calificacion.value }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="flex gap-2 justify-center">
+                    <button 
+                      pButton 
+                      icon="pi pi-eye" 
+                      class="p-button-rounded p-button-info p-button-sm"
+                      pTooltip="Ver detalles"
+                      tooltipPosition="top"
+                      (click)="verDetalleCalificacion(calificacion)">
+                    </button>
+                    <button 
+                      pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-rounded p-button-warning p-button-sm"
+                      pTooltip="Editar"
+                      tooltipPosition="top">
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="6" class="text-center p-4">
+                  <div class="flex flex-column align-items-center">
+                    <i class="pi pi-folder-open text-5xl text-gray-400 mb-3"></i>
+                    <span class="text-gray-500 mb-2">No se encontraron calificaciones</span>
+                    <span class="text-gray-400 text-sm">Seleccione un estudiante o materia y haga clic en "Buscar"</span>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-tabPanel>
+    </p-tabView>
+  </div>
+</div>
+
+<!-- Diálogo de detalle de evaluación -->
+<p-dialog 
+  [visible]="showEvaluacionDialog()"
+  (onHide)="showEvaluacionDialog.set(false)"
+  [style]="{'width': '550px', 'border-radius': '1rem', 'overflow': 'hidden'}" 
+  [modal]="true" 
+  [draggable]="false" 
+  [resizable]="false"
+  header="Detalle de Evaluación">
+  
+  <div class="p-fluid" *ngIf="selectedEvaluacion()">
+    <div class="mb-4 text-center">
+      <span 
+        [class]="'text-white px-3 py-1 rounded-lg text-sm ' + getAssessmentTypeColor(selectedEvaluacion().assessment_type)"
+        style="display: inline-block">
+        {{ getAssessmentTypeLabel(selectedEvaluacion().assessment_type) }}
+      </span>
     </div>
-    <!-- Tabla de resultados actual -->
-    <!-- ... -->
+    
+    <div class="grid">
+      <div class="col-12">
+        <h3 class="text-xl font-bold text-center text-gray-800 mb-4">
+          {{ selectedEvaluacion().name }}
+        </h3>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Materia:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ selectedEvaluacion().subject?.name }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Curso:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ selectedEvaluacion().course?.name }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Fecha:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ formatDate(selectedEvaluacion().date) }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Puntaje máximo:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ selectedEvaluacion().max_score }} puntos
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-12">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Trimestre:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ selectedEvaluacion().trimester?.name }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   
-  <!-- Modales existentes de detalle y historial -->
-  <!-- ... -->
-</div>
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cerrar" 
+      icon="pi pi-times" 
+      (click)="showEvaluacionDialog.set(false)" 
+      class="p-button-text">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Diálogo de detalle de calificación -->
+<p-dialog 
+  [visible]="showCalificacionDialog()"
+  (onHide)="showCalificacionDialog.set(false)"
+  [style]="{'width': '550px', 'border-radius': '1rem', 'overflow': 'hidden'}" 
+  [modal]="true" 
+  [draggable]="false" 
+  [resizable]="false"
+  header="Detalle de Calificación">
+  
+  <div class="p-fluid" *ngIf="selectedCalificacion()">
+    <div class="grid">
+      <div class="col-12">
+        <div class="field mb-5">
+          <h3 class="text-xl font-bold text-center text-gray-800 mb-1">
+            {{ selectedCalificacion().assessment_item?.name }}
+          </h3>
+          <p class="text-center text-sm text-gray-500">
+            {{ selectedCalificacion().assessment_item?.subject?.name }} | 
+            <span [class]="'text-white px-2 py-1 rounded-lg ' + getAssessmentTypeColor(selectedCalificacion().assessment_item?.assessment_type)"
+                  style="display: inline-block; font-size: 0.75rem;">
+              {{ getAssessmentTypeLabel(selectedCalificacion().assessment_item?.assessment_type) }}
+            </span>
+          </p>
+        </div>
+      </div>
+      
+      <div class="col-12">
+        <div class="bg-blue-50 p-3 rounded-lg mb-4 border-left-2 border-blue-500">
+          <div class="flex align-items-center">
+            <i class="pi pi-user text-blue-500 mr-2"></i>
+            <div>
+              <div class="font-bold">{{ selectedCalificacion().student?.full_name }}</div>
+              <div class="text-sm text-gray-600">{{ selectedCalificacion().student?.student_id }} - {{ selectedCalificacion().student?.current_course_name }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Calificación:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md flex items-center">
+            <span class="font-bold text-lg mr-2">{{ selectedCalificacion().value }}</span>
+            <span class="text-sm text-gray-500">/ {{ selectedCalificacion().assessment_item?.max_score }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Fecha de registro:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ formatDate(selectedCalificacion().date_recorded) }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-12" *ngIf="selectedCalificacion().comment">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Comentario:</label>
+          <div class="p-2 border-1 border-gray-300 bg-gray-50 rounded-md">
+            {{ selectedCalificacion().comment }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cerrar" 
+      icon="pi pi-times" 
+      (click)="showCalificacionDialog.set(false)" 
+      class="p-button-text">
+    </button>
+    <button 
+      pButton 
+      label="Editar" 
+      icon="pi pi-pencil" 
+      class="p-button-warning">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Diálogo para crear/editar evaluación -->
+<p-dialog 
+  [visible]="showEvaluacionFormDialog()"
+  (onHide)="showEvaluacionFormDialog.set(false)"
+  [style]="{'width': '600px', 'border-radius': '1rem', 'overflow': 'hidden'}" 
+  [modal]="true" 
+  [draggable]="false" 
+  [resizable]="false"
+  [header]="editingEvaluacionId ? 'Editar Evaluación' : 'Nueva Evaluación'">
+  
+  <div class="p-fluid">
+    <div class="grid">
+      <div class="col-12">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Nombre <span class="text-red-500">*</span></label>
+          <input 
+            type="text" 
+            pInputText 
+            [(ngModel)]="evaluacionForm.name" 
+            placeholder="Nombre de la evaluación"
+            class="w-full"
+          />
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Materia <span class="text-red-500">*</span></label>
+          <p-dropdown 
+            [options]="materias()" 
+            [(ngModel)]="evaluacionForm.subject" 
+            optionLabel="name" 
+            optionValue="id"
+            placeholder="Seleccione una materia" 
+            styleClass="w-full"
+          ></p-dropdown>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Curso</label>
+          <p-dropdown 
+            [options]="cursos()" 
+            [(ngModel)]="evaluacionForm.course" 
+            optionLabel="name" 
+            optionValue="id"
+            placeholder="Seleccione un curso"
+            styleClass="w-full"
+          ></p-dropdown>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Tipo <span class="text-red-500">*</span></label>
+          <p-dropdown 
+            [options]="tiposEvaluacion" 
+            [(ngModel)]="evaluacionForm.assessment_type" 
+            optionLabel="label" 
+            optionValue="value"
+            placeholder="Tipo de evaluación"
+            styleClass="w-full"
+          ></p-dropdown>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Trimestre <span class="text-red-500">*</span></label>
+          <p-dropdown 
+            [options]="trimestres()" 
+            [(ngModel)]="evaluacionForm.trimester" 
+            optionLabel="name" 
+            optionValue="id"
+            placeholder="Seleccione un trimestre" 
+            styleClass="w-full"
+          ></p-dropdown>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Fecha <span class="text-red-500">*</span></label>
+          <p-calendar 
+            [(ngModel)]="evaluacionForm.date" 
+            [showIcon]="true" 
+            dateFormat="dd/mm/yy"
+            styleClass="w-full"
+          ></p-calendar>
+        </div>
+      </div>
+      
+      <div class="col-6">
+        <div class="field">
+          <label class="block text-sm font-semibold mb-1">Puntaje máximo <span class="text-red-500">*</span></label>
+          <p-inputNumber 
+            [(ngModel)]="evaluacionForm.max_score" 
+            [min]="1" 
+            [max]="100" 
+            styleClass="w-full"
+          ></p-inputNumber>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancelar" 
+      icon="pi pi-times" 
+      (click)="showEvaluacionFormDialog.set(false)" 
+      class="p-button-text">
+    </button>
+    <button 
+      pButton 
+      label="Guardar" 
+      icon="pi pi-save" 
+      (click)="guardarEvaluacion()" 
+      class="p-button-success">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Modificar el diálogo para calificar estudiantes -->
+<p-dialog 
+  [visible]="showCalificarDialog()"
+  (onHide)="showCalificarDialog.set(false)"
+  [style]="{'width': '700px', 'border-radius': '1rem', 'overflow': 'hidden'}" 
+  [modal]="true" 
+  [draggable]="false" 
+  [resizable]="false"
+  header="Registrar Calificaciones">
+  
+  <div class="p-fluid" *ngIf="evaluacionSeleccionada()">
+    <!-- Información de la evaluación -->
+    <div class="bg-blue-50 p-4 rounded-lg mb-4 border-left-2 border-blue-500">
+      <div class="flex items-center mb-2">
+        <span 
+          [class]="'text-white px-2 py-1 rounded-lg text-xs mr-2 ' + getAssessmentTypeColor(evaluacionSeleccionada().assessment_type)"
+          style="display: inline-block">
+          {{ getAssessmentTypeLabel(evaluacionSeleccionada().assessment_type) }}
+        </span>
+        <h3 class="m-0 text-lg font-bold">{{ evaluacionSeleccionada().name }}</h3>
+      </div>
+      <div class="text-sm text-gray-600">
+        <div><strong>Materia:</strong> {{ evaluacionSeleccionada().subject?.name }}</div>
+        <div><strong>Curso:</strong> {{ evaluacionSeleccionada().course?.name }}</div>
+        <div><strong>Puntaje máximo:</strong> {{ evaluacionSeleccionada().max_score }} puntos</div>
+        <div><strong>Fecha:</strong> {{ formatDate(evaluacionSeleccionada().date) }}</div>
+      </div>
+    </div>
+    
+    <!-- Barra de búsqueda de estudiantes -->
+    <div class="mb-4 p-inputgroup">
+      <span class="p-inputgroup-addon">
+        <i class="pi pi-search"></i>
+      </span>
+      <input 
+        type="text" 
+        pInputText 
+        [(ngModel)]="estudianteSearchQuery"
+        placeholder="Buscar estudiante por nombre o ID..."
+        (input)="buscarEstudiantesEnModal()" 
+      />
+      <button 
+        *ngIf="estudianteSearchQuery" 
+        pButton 
+        type="button" 
+        icon="pi pi-times" 
+        class="p-button-secondary" 
+        (click)="limpiarBusquedaEstudiantes()">
+      </button>
+    </div>
+    
+    <!-- Tabla de estudiantes para calificar -->
+    <p-table 
+      [value]="estudiantesParaCalificar()" 
+      [loading]="loadingEstudiantes() || buscandoEstudiantes()"
+      styleClass="p-datatable-sm p-datatable-striped">
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 80px">ID</th>
+          <th>Estudiante</th>
+          <th style="width: 120px">Calificación</th>
+          <th style="width: 100px">Acción</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-estudiante>
+        <tr>
+          <td>{{ estudiante.student_id }}</td>
+          <td>{{ estudiante.full_name }}</td>
+          <td>
+            <input 
+              type="number" 
+              pInputText 
+              [(ngModel)]="estudiantesCalificados[estudiante.user_id]" 
+              [min]="0" 
+              [max]="evaluacionSeleccionada().max_score" 
+              style="width: 100%;"
+              class="p-inputtext p-component p-inputnumber-input"
+              placeholder="0-{{ evaluacionSeleccionada().max_score }}">
+          </td>
+          <td>
+            <button 
+              pButton 
+              icon="pi pi-save" 
+              class="p-button-success p-button-sm"
+              (click)="registrarCalificacionEstudiante(estudiante, estudiantesCalificados[estudiante.user_id])">
+            </button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="4" class="text-center p-4">
+            <div class="flex flex-column align-items-center">
+              <i class="pi pi-users text-5xl text-gray-400 mb-3"></i>
+              <span class="text-gray-500 mb-2">No se encontraron estudiantes</span>
+              <span class="text-gray-400 text-sm">
+                {{ estudianteSearchQuery ? 'Intente con otra búsqueda' : 'Seleccione un curso diferente' }}
+              </span>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cerrar" 
+      icon="pi pi-times" 
+      (click)="showCalificarDialog.set(false)" 
+      class="p-button-text">
+    </button>
+  </ng-template>
+</p-dialog>
