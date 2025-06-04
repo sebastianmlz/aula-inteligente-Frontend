@@ -90,6 +90,15 @@ export class GestionCalificacionesComponent implements OnInit {
   totalCalificaciones = signal<number>(0);
   pageGrades = 1;
   pageSizeGrades = 10;
+
+  // Propiedades para paginación (búsqueda)
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalRecords: number = 0;
+  totalPages: number = 0;
+  hasNextPage: boolean = false;
+  hasPrevPage: boolean = false;
+  loading: boolean = false;
   
   // Filtros para evaluaciones
   filtrosEvaluacion: AssessmentFilters = {
@@ -104,7 +113,14 @@ export class GestionCalificacionesComponent implements OnInit {
     student: undefined,
     subject: undefined,
     period: undefined,
-    assessmentItem: undefined
+    assessmentItem: undefined,
+    valueMin: undefined,
+    valueMax: undefined,
+    assessmentType: undefined,
+    dateFrom: undefined,
+    dateTo: undefined,
+    course: undefined,
+    teacherComment: undefined
   };
   
   // Estudiante seleccionado (búsqueda)
@@ -248,6 +264,17 @@ export class GestionCalificacionesComponent implements OnInit {
     this.cargarMaterias();
     this.cargarCursos();
   }
+
+  onPageChange(event: any): void {
+    if (event.page !== undefined) {
+      this.currentPage = event.page + 1;
+      this.pageSize = event.rows;
+    } else if (event.first !== undefined) {
+      this.currentPage = Math.floor(event.first / event.rows) + 1;
+      this.pageSize = event.rows;
+    }
+    this.cargarCalificaciones(this.currentPage, this.pageSize);
+  }
   
   // Cargar materias de forma separada
   cargarMaterias(): void {
@@ -344,8 +371,8 @@ export class GestionCalificacionesComponent implements OnInit {
       });
   }
   
-  // Cargar calificaciones con filtros aplicados
-  cargarCalificaciones(): void {
+  // Cargar calificaciones con filtros aplicados - versión corregida
+  cargarCalificaciones(page: number = 1, pageSize: number = 10): void {
     // Validar que los filtros obligatorios estén presentes
     if ((!this.filtrosCalificacion.student && !this.filtrosCalificacion.subject) || !this.filtrosCalificacion.period) {
       this.messageService.add({
@@ -357,17 +384,29 @@ export class GestionCalificacionesComponent implements OnInit {
     }
     
     this.loadingGrades.set(true);
+    this.pageGrades = page;
+    this.pageSizeGrades = pageSize;
     
-    this.filtrosCalificacion.page = this.pageGrades;
-    this.filtrosCalificacion.pageSize = this.pageSizeGrades;
+    // Procesar las fechas si se seleccionaron
+    const filtros = { ...this.filtrosCalificacion, page, pageSize };
     
-    this.calificacionService.listarCalificaciones(this.filtrosCalificacion)
+    if (this.rangoFechas && this.rangoFechas.length === 2) {
+      // Formato YYYY-MM-DD
+      filtros.dateFrom = this.formatDateForApi(this.rangoFechas[0]);
+      filtros.dateTo = this.formatDateForApi(this.rangoFechas[1]);
+    }
+    
+    console.log('Cargando calificaciones con filtros:', filtros);
+    
+    // El resto del método continúa igual...
+    this.calificacionService.listarCalificaciones(filtros)
       .pipe(finalize(() => this.loadingGrades.set(false)))
       .subscribe({
         next: (response) => {
           if (response && response.items) {
             this.calificaciones.set(response.items);
             this.totalCalificaciones.set(response.total);
+            console.log(`Calificaciones cargadas: ${response.items.length}, total: ${response.total}`);
           } else {
             this.calificaciones.set([]);
             this.totalCalificaciones.set(0);
@@ -382,6 +421,12 @@ export class GestionCalificacionesComponent implements OnInit {
           });
         }
       });
+  }
+  
+  // Método auxiliar para formatear fechas en formato API
+  formatDateForApi(date: Date): string {
+    if (!date) return '';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
   
   // Búsqueda de estudiantes (para filtro de calificaciones)
@@ -438,11 +483,21 @@ export class GestionCalificacionesComponent implements OnInit {
     this.cargarEvaluaciones();
   }
   
-  // Cambio de página en tabla de calificaciones
+  // Cambio de página en tabla de calificaciones - método corregido
   onPageChangeGrades(event: any): void {
-    this.pageGrades = event.page + 1;
+    // El evento de PrimeNG tiene índice de página basado en 0, mientras que la API suele usar base 1
+    this.pageGrades = event.first / event.rows + 1; 
     this.pageSizeGrades = event.rows;
-    this.cargarCalificaciones();
+    
+    console.log(`Cambiando a página ${this.pageGrades}, tamaño ${this.pageSizeGrades}`);
+    this.cargarCalificaciones(this.pageGrades, this.pageSizeGrades);
+  }
+  
+  // Método auxiliar para calcular el número total de páginas
+  calcularTotalPaginas(): number {
+    if (!this.totalCalificaciones()) return 1;
+    // Usar window.Math para evitar el error de "Math is not defined"
+    return Math.ceil(this.totalCalificaciones() / this.pageSizeGrades);
   }
   
   // Abrir modal de detalle de evaluación
@@ -770,5 +825,53 @@ export class GestionCalificacionesComponent implements OnInit {
   limpiarBusquedaEstudiantes(): void {
     this.estudianteSearchQuery = '';
     this.estudiantesParaCalificar.set(this.estudiantesOriginal());
+  }
+
+  // Hacer disponible Math para cálculos en la plantilla
+  Math: any = Math;
+
+  // Agregar propiedades adicionales al componente
+  // En GestionCalificacionesComponent
+
+  // Para el rango de fechas
+  rangoFechas: Date[] = [];
+
+  // Filtro avanzado visible/oculto
+  mostrarFiltrosAvanzados: boolean = false;
+
+  // Método para alternar la visibilidad de los filtros avanzados
+  toggleFiltrosAvanzados(): void {
+    this.mostrarFiltrosAvanzados = !this.mostrarFiltrosAvanzados;
+  }
+
+  // Método para limpiar todos los filtros
+  limpiarFiltros(): void {
+    this.filtrosCalificacion = {
+      student: undefined,
+      subject: undefined,
+      period: this.periodos().find(p => p.is_active)?.id, // Mantener solo el periodo activo
+      assessmentItem: undefined,
+      valueMin: undefined,
+      valueMax: undefined,
+      assessmentType: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+      course: undefined,
+      teacherComment: undefined
+    };
+    
+    // Limpiar rango de fechas
+    this.rangoFechas = [];
+    
+    // Limpiar estudiante seleccionado
+    this.selectedStudent.set(null);
+    this.studentSearchQuery = '';
+    
+    // Notificar al usuario
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Filtros reiniciados',
+      detail: 'Los filtros han sido reiniciados'
+    });
   }
 }

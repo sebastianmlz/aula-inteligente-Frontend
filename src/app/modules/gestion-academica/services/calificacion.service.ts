@@ -60,21 +60,25 @@ export class CalificacionService {
     return this.http.get(`${this.apiUrl}academic/assessment-items/`, { headers, params });
   }
   
-  // Obtener lista de calificaciones con filtros obligatorios
+  // Obtener lista de calificaciones con filtros obligatorios - Mejora en paginación
   listarCalificaciones(filtros: GradesFilters): Observable<any> {
     const token = localStorage.getItem('auth_access');
     if (!token) throw new Error('No hay token de autenticación');
     
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    let params = new HttpParams()
-      .set('page', filtros.page?.toString() || '1')
-      .set('page_size', filtros.pageSize?.toString() || '10');
+    let params = new HttpParams();
+    
+    // Asegurar que siempre se envíen los parámetros de paginación
+    params = params.set('page', (filtros.page || 1).toString());
+    params = params.set('page_size', (filtros.pageSize || 10).toString());
     
     // Aplicar filtros obligatorios
     if (filtros.student) params = params.set('student', filtros.student.toString());
     if (filtros.subject) params = params.set('subject', filtros.subject.toString());
     if (filtros.period) params = params.set('period', filtros.period.toString());
     if (filtros.assessmentItem) params = params.set('assessment_item', filtros.assessmentItem.toString());
+    
+    console.log('URL params para calificaciones:', params.toString());
     
     return this.http.get(`${this.apiUrl}academic/grades/`, { headers, params });
   }
@@ -154,10 +158,18 @@ export interface AssessmentFilters {
 }
 
 export interface GradesFilters {
-  page?: number;
-  pageSize?: number;
   student?: number;
   subject?: number;
   period?: number;
   assessmentItem?: number;
+  page?: number;
+  pageSize?: number;
+  // Nuevos filtros
+  valueMin?: number;     // Calificación mínima
+  valueMax?: number;     // Calificación máxima
+  assessmentType?: string; // Tipo de evaluación (EXAM, TASK, etc)
+  dateFrom?: string;     // Fecha desde
+  dateTo?: string;       // Fecha hasta
+  course?: number;       // Filtrar por curso
+  teacherComment?: string; // Buscar en comentarios del profesor
 }
