@@ -1,0 +1,411 @@
+<p-toast></p-toast>
+
+<div class="p-4">
+  <div class="card">
+    <h2 class="text-xl font-bold mb-4">Gestión de Parámetros Académicos</h2>
+    
+    <p-tabView [(activeIndex)]="activeTabIndex">
+      <!-- Tab de Periodos Académicos -->
+      <p-tabPanel header="Periodos Académicos">
+        <div class="card">
+          <p-toolbar styleClass="mb-4">
+            <ng-template pTemplate="left">
+              <div class="flex flex-wrap gap-2">
+                <span class="p-input-icon-left">
+                  <i class="pi pi-search"></i>
+                  <input 
+                    type="text" 
+                    pInputText 
+                    [(ngModel)]="filtroPeriodos.search" 
+                    placeholder="Buscar periodo..." 
+                    (keyup.enter)="buscarPeriodos()">
+                </span>
+                
+                <p-dropdown 
+                  [options]="[{label: 'Activos', value: true}, {label: 'Inactivos', value: false}, {label: 'Todos', value: undefined}]" 
+                  [(ngModel)]="filtroPeriodos.active" 
+                  placeholder="Estado"
+                  (onChange)="buscarPeriodos()"
+                  styleClass="w-full sm:w-14rem">
+                </p-dropdown>
+                
+                <button 
+                  pButton 
+                  icon="pi pi-search" 
+                  label="Buscar" 
+                  (click)="buscarPeriodos()" 
+                  [loading]="loadingPeriodos()"
+                  class="mr-2">
+                </button>
+                <button 
+                  pButton 
+                  label="Limpiar" 
+                  icon="pi pi-filter-slash" 
+                  (click)="limpiarFiltroPeriodos()"
+                  class="p-button-outlined">
+                </button>
+              </div>
+            </ng-template>
+            
+            <ng-template pTemplate="right">
+              <!-- Actualiza el botón para que llame al método abrirDialogoPeriodo -->
+              <button 
+                pButton 
+                label="Nuevo Periodo" 
+                icon="pi pi-plus" 
+                class="p-button-success"
+                (click)="abrirDialogoPeriodo()">
+              </button>
+            </ng-template>
+          </p-toolbar>
+          
+          <p-table 
+            [value]="periodos()" 
+            [loading]="loadingPeriodos()"
+            [paginator]="true" 
+            [rows]="10"
+            styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Año</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Estado</th>
+                <th>Actual</th>
+                <th>Acciones</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-periodo>
+              <tr>
+                <td>{{ periodo.id }}</td>
+                <td>{{ periodo.name }}</td>
+                <td>{{ periodo.start_date | date:'yyyy' }}</td>
+                <td>{{ formatearFecha(periodo.start_date) }}</td>
+                <td>{{ formatearFecha(periodo.end_date) }}</td>
+                <td>
+                  <span 
+                    [class]="periodo.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" 
+                    class="px-2 py-1 rounded-lg text-xs font-medium">
+                    {{ periodo.is_active ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <span *ngIf="periodo.current" class="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs font-medium">
+                    Actual
+                  </span>
+                </td>
+                <td>
+                  <div class="flex gap-1">
+                    <button 
+                      pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-text p-button-sm p-button-primary"
+                      pTooltip="Editar">
+                    </button>
+                    <button 
+                      pButton 
+                      [icon]="periodo.is_active ? 'pi pi-lock' : 'pi pi-lock-open'" 
+                      [class]="periodo.is_active ? 'p-button-text p-button-sm p-button-danger' : 'p-button-text p-button-sm p-button-success'"
+                      [pTooltip]="periodo.is_active ? 'Desactivar' : 'Activar'"
+                      (click)="cambiarEstadoPeriodo(periodo)"
+                      [disabled]="cambiandoEstado()">
+                    </button>
+                    <!-- Agregar botón de eliminar -->
+                    <button 
+                      pButton 
+                      icon="pi pi-trash" 
+                      class="p-button-text p-button-sm p-button-danger"
+                      pTooltip="Eliminar"
+                      (click)="confirmarEliminarPeriodo(periodo)"
+                      [disabled]="eliminandoPeriodo()">
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="8" class="text-center p-4">
+                  <div class="flex flex-column align-items-center">
+                    <i class="pi pi-calendar text-5xl text-gray-400 mb-3"></i>
+                    <span class="text-gray-500 mb-2">No se encontraron periodos académicos</span>
+                    <span class="text-gray-400 text-sm">
+                      {{ filtroPeriodos.search ? 'Intente con otra búsqueda' : 'Agregue un nuevo periodo académico' }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-tabPanel>
+      
+      <!-- Tab de Trimestres -->
+      <p-tabPanel header="Trimestres Académicos">
+        <div class="card">
+          <p-toolbar styleClass="mb-4">
+            <ng-template pTemplate="left">
+              <div class="flex flex-wrap gap-2">
+                <span class="p-input-icon-left">
+                  <i class="pi pi-search"></i>
+                  <input 
+                    type="text" 
+                    pInputText 
+                    [(ngModel)]="filtroTrimestres.search" 
+                    placeholder="Buscar trimestre..." 
+                    (keyup.enter)="buscarTrimestres()">
+                </span>
+                
+                <button 
+                  pButton 
+                  icon="pi pi-search" 
+                  label="Buscar" 
+                  (click)="buscarTrimestres()" 
+                  [loading]="loadingTrimestres()"
+                  class="mr-2">
+                </button>
+                <button 
+                  pButton 
+                  label="Limpiar" 
+                  icon="pi pi-filter-slash" 
+                  (click)="limpiarFiltroTrimestres()"
+                  class="p-button-outlined">
+                </button>
+              </div>
+            </ng-template>
+            
+            <ng-template pTemplate="right">
+              <!-- Actualizar el botón "Nuevo Trimestre" para llamar a la función abrirDialogoTrimestre -->
+              <button 
+                pButton 
+                label="Nuevo Trimestre" 
+                icon="pi pi-plus" 
+                class="p-button-success"
+                (click)="abrirDialogoTrimestre()">
+              </button>
+            </ng-template>
+          </p-toolbar>
+          
+          <p-table 
+            [value]="trimestres()" 
+            [loading]="loadingTrimestres()"
+            [paginator]="true" 
+            [rows]="10"
+            styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Periodo</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Acciones</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-trimestre>
+              <tr>
+                <td>{{ trimestre.id }}</td>
+                <td>{{ trimestre.name }}</td>
+                <!-- Reemplazar esta línea en la tabla de trimestres -->
+                <td>{{ obtenerNombrePeriodo(trimestre.period) }}</td>
+                <!-- Por esta línea que muestra el nombre del periodo en lugar del ID -->
+                <td>{{ formatearFecha(trimestre.start_date) }}</td>
+                <td>{{ formatearFecha(trimestre.end_date) }}</td>
+                <td>
+                  <div class="flex gap-1">
+                    <button 
+                      pButton 
+                      icon="pi pi-pencil" 
+                      class="p-button-text p-button-sm p-button-primary"
+                      pTooltip="Editar"
+                      (click)="abrirDialogoEditarTrimestre(trimestre)">
+                    </button>
+                    <button 
+                      pButton 
+                      icon="pi pi-trash" 
+                      class="p-button-text p-button-sm p-button-danger"
+                      pTooltip="Eliminar"
+                      (click)="confirmarEliminarTrimestre(trimestre)"
+                      [disabled]="eliminandoTrimestre()">
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="6" class="text-center p-4">
+                  <div class="flex flex-column align-items-center">
+                    <i class="pi pi-calendar text-5xl text-gray-400 mb-3"></i>
+                    <span class="text-gray-500 mb-2">No se encontraron trimestres académicos</span>
+                    <span class="text-gray-400 text-sm">
+                      {{ filtroTrimestres.search ? 'Intente con otra búsqueda' : 'Agregue un nuevo trimestre académico' }}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-tabPanel>
+    </p-tabView>
+  </div>
+</div>
+
+<!-- Confirmar cambio de estado -->
+<p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
+
+<!-- Modal para Nuevo Periodo -->
+<p-dialog 
+  [visible]="dialogoPeriodoVisible()" 
+  (visibleChange)="dialogoPeriodoVisible.set($event)" 
+  [style]="{width: '450px'}" 
+  header="Nuevo Periodo Académico" 
+  [modal]="true" 
+  styleClass="p-fluid">
+  
+  <ng-template pTemplate="content">
+    <div class="field">
+      <label for="nombre">Nombre</label>
+      <input type="text" pInputText id="nombre" [(ngModel)]="nuevoPeriodo.name" required autofocus />
+      <small class="p-error" *ngIf="!nuevoPeriodo.name">El nombre es requerido.</small>
+    </div>
+    
+
+<!-- Actualización de calendarios para manejar correctamente los formatos de fecha -->
+<div class="field">
+  <label for="fechaInicio">Fecha de Inicio</label>
+  <p-calendar 
+    id="fechaInicio" 
+    [(ngModel)]="nuevoPeriodo.start_date" 
+    [showIcon]="true" 
+    dateFormat="yy-mm-dd"
+    appendTo="body"
+    [readonlyInput]="true"
+    [touchUI]="true">
+  </p-calendar>
+  <small class="p-error" *ngIf="!nuevoPeriodo.start_date">La fecha de inicio es requerida.</small>
+</div>
+
+<div class="field">
+  <label for="fechaFin">Fecha de Fin</label>
+  <p-calendar 
+    id="fechaFin" 
+    [(ngModel)]="nuevoPeriodo.end_date" 
+    [showIcon]="true" 
+    dateFormat="yy-mm-dd"
+    appendTo="body"
+    [readonlyInput]="true"
+    [touchUI]="true">
+  </p-calendar>
+  <small class="p-error" *ngIf="!nuevoPeriodo.end_date">La fecha de fin es requerida.</small>
+</div>
+    
+    <div class="field">
+      <label for="activo">Estado</label>
+      <div class="flex align-items-center">
+        <p-inputSwitch [(ngModel)]="nuevoPeriodo.is_active"></p-inputSwitch>
+        <span class="ml-2">{{ nuevoPeriodo.is_active ? 'Activo' : 'Inactivo' }}</span>
+      </div>
+    </div>
+  </ng-template>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancelar" 
+      icon="pi pi-times" 
+      class="p-button-text" 
+      (click)="dialogoPeriodoVisible.set(false)">
+    </button>
+    <button 
+      pButton 
+      label="Guardar" 
+      icon="pi pi-check" 
+      [loading]="guardandoPeriodo()" 
+      class="p-button-text" 
+      (click)="guardarPeriodo()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Modal para Nuevo/Editar Trimestre -->
+<p-dialog 
+  [visible]="dialogoTrimestreVisible()" 
+  (visibleChange)="dialogoTrimestreVisible.set($event)" 
+  [style]="{width: '450px'}" 
+  [header]="modoEdicionTrimestre ? 'Editar Trimestre Académico' : 'Nuevo Trimestre Académico'" 
+  [modal]="true" 
+  styleClass="p-fluid">
+  
+  <ng-template pTemplate="content">
+    <div class="field">
+      <label for="nombre-trimestre">Nombre</label>
+      <input type="text" pInputText id="nombre-trimestre" [(ngModel)]="nuevoTrimestre.name" required autofocus />
+      <small class="p-error" *ngIf="!nuevoTrimestre.name">El nombre es requerido.</small>
+    </div>
+    
+    <div class="field">
+      <label for="periodo">Periodo Académico</label>
+      <p-dropdown 
+        id="periodo" 
+        [options]="periodosParaSelector" 
+        [(ngModel)]="nuevoTrimestre.period" 
+        placeholder="Seleccione un periodo"
+        [filter]="true" 
+        filterBy="label"
+        appendTo="body"
+        [required]="true">
+      </p-dropdown>
+      <small class="p-error" *ngIf="!nuevoTrimestre.period">El periodo es requerido.</small>
+    </div>
+
+    <div class="field">
+      <label for="fechaInicioTrimestre">Fecha de Inicio</label>
+      <p-calendar 
+        id="fechaInicioTrimestre" 
+        [(ngModel)]="nuevoTrimestre.start_date" 
+        [showIcon]="true" 
+        dateFormat="yy-mm-dd"
+        appendTo="body"
+        [readonlyInput]="true"
+        [touchUI]="true">
+      </p-calendar>
+      <small class="p-error" *ngIf="!nuevoTrimestre.start_date">La fecha de inicio es requerida.</small>
+    </div>
+
+    <div class="field">
+      <label for="fechaFinTrimestre">Fecha de Fin</label>
+      <p-calendar 
+        id="fechaFinTrimestre" 
+        [(ngModel)]="nuevoTrimestre.end_date" 
+        [showIcon]="true" 
+        dateFormat="yy-mm-dd"
+        appendTo="body"
+        [readonlyInput]="true"
+        [touchUI]="true">
+      </p-calendar>
+      <small class="p-error" *ngIf="!nuevoTrimestre.end_date">La fecha de fin es requerida.</small>
+    </div>
+  </ng-template>
+  
+  <ng-template pTemplate="footer">
+    <button 
+      pButton 
+      label="Cancelar" 
+      icon="pi pi-times" 
+      class="p-button-text" 
+      (click)="dialogoTrimestreVisible.set(false)">
+    </button>
+    <button 
+      pButton 
+      label="Guardar" 
+      icon="pi pi-check" 
+      [loading]="guardandoTrimestre()" 
+      class="p-button-text" 
+      (click)="guardarTrimestre()">
+    </button>
+  </ng-template>
+</p-dialog>

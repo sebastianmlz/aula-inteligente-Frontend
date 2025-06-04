@@ -22,4 +22,16 @@ export class NotificacionService {
   error(resumen: string, detalle: string): void {
     this.messageService.add({ severity: 'error', summary: resumen, detail: detalle });
   }
+
+  alertaRendimiento(estudiante: string, prediccion: number): void {
+    const severity = prediccion < 51 ? 'error' : 'warn';
+    
+    this.messageService.add({ 
+      severity: severity,
+      summary: '⚠️ Alerta de Rendimiento', 
+      detail: `${estudiante} tiene una predicción de: ${prediccion}`,
+      sticky: true, // Hace que la notificación permanezca hasta que se cierre manualmente
+      closable: true
+    });
+  }
 }

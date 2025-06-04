@@ -15,6 +15,8 @@ import { CalificacionService } from '../../../gestion-academica/services/calific
 import { EnrollmentService } from '../../../gestion-academica/services/enrollment.service';
 import { MateriaService } from '../../../gestion-academica/services/materia.service';
 import { CursoService } from '../../../gestion-academica/services/curso.service';
+import { AnalyticsService } from '../../services/analytics.service';
+import { AuthService } from '../../../autenticacion/services/auth.service'; // Agregar importación del servicio de autenticación
 
 @Component({
   selector: 'app-gestion-estudiantes',
@@ -58,6 +60,12 @@ export class GestionEstudiantesComponent implements OnInit {
   filtros: any = {
     search: ''
   };
+
+  // Añade estas propiedades justo después de la declaración de otras propiedades, por ejemplo después de loadingHistorial
+  // Añadir para las predicciones académicas
+  prediccionRendimiento: any = null;
+  comparacionRendimiento: any = null;
+  loadingPredicciones: boolean = false;
 
   // Añade esta nueva propiedad para el historial de calificaciones
   historialCalificaciones: any = {};
@@ -135,6 +143,7 @@ export class GestionEstudiantesComponent implements OnInit {
     enrollment_date: ''
   };
 
+  // Agregar el import del servicio
   constructor(
     private studentService: StudentService,
     private noti: NotificacionService,
@@ -142,10 +151,105 @@ export class GestionEstudiantesComponent implements OnInit {
     private enrollmentService: EnrollmentService,
     private materiaService: MateriaService,
     private cursoService: CursoService,
-    private confirmationService: ConfirmationService // Nuevo servicio
+    private confirmationService: ConfirmationService,
+    private analyticsService: AnalyticsService, // Añadir el servicio aquí
+    private authService: AuthService // Nuevo servicio agregado
   ) {}
 
+  // Agregar estos métodos
+  /**
+   * Obtiene la predicción de rendimiento para un estudiante
+   */
+  obtenerPrediccion(estudiante: any) {
+    console.log('%c INICIANDO OBTENER PREDICCIÓN ', 'background: #0066cc; color: white; font-size: 14px;');
+    this.debugEstudiante(estudiante);
+    
+    // Verificar si el ID de usuario es válido
+    if (!estudiante || !estudiante.user || !estudiante.user.id) {
+      console.error('ID de usuario no válido:', estudiante);
+      this.noti.error('Error', 'No se puede obtener predicción: ID de usuario no válido');
+      return;
+    }
+
+    // Asegurarse de que el ID sea un número
+    const userId = Number(estudiante.user.id);
+    console.log('ID de usuario convertido a Number:', userId);
+    
+    this.loadingPredicciones = true;
+    this.prediccionRendimiento = null;
+    this.comparacionRendimiento = null; // Cerrar cualquier comparación previa
+    
+    this.analyticsService.obtenerPrediccionRendimiento(userId).subscribe({
+      next: (res) => {
+        console.log('%c PREDICCIÓN RECIBIDA ', 'background: #00cc66; color: white; font-size: 14px;');
+        console.log('Respuesta completa:', res);
+        this.prediccionRendimiento = res;
+        this.loadingPredicciones = false;
+        
+        // Verificar si la predicción es menor a 80 y mostrar alerta
+        const prediccion = res.predicted_next_trimester_avg_grade;
+        const nombreEstudiante = `${estudiante.user.first_name} ${estudiante.user.last_name}`;
+        
+        if (prediccion < 80) {
+          this.noti.alertaRendimiento(nombreEstudiante, prediccion);
+        }
+      },
+      error: (err) => {
+        console.log('%c ERROR EN PREDICCIÓN ', 'background: #cc0000; color: white; font-size: 14px;');
+        console.error('Error al obtener predicción:', err);
+        this.noti.error('Error', 'No se pudo obtener la predicción de rendimiento: ' + 
+                      (err.error?.detail || err.message || 'Error desconocido'));
+        this.loadingPredicciones = false;
+      }
+    });
+  }
+
+  /**
+   * Compara el rendimiento actual vs predicho para un estudiante
+   */
+  compararRendimiento(estudiante: any) {
+    console.log('%c INICIANDO COMPARACIÓN DE RENDIMIENTO ', 'background: #0066cc; color: white; font-size: 14px;');
+    this.debugEstudiante(estudiante);
+    
+    // Verificar si el ID de usuario es válido
+    if (!estudiante || !estudiante.user || !estudiante.user.id) {
+      console.error('ID de usuario no válido:', estudiante);
+      this.noti.error('Error', 'No se puede comparar rendimiento: ID de usuario no válido');
+      return;
+    }
+
+    // Asegurarse de que el ID sea un número
+    const userId = Number(estudiante.user.id);
+    console.log('ID de usuario convertido a Number:', userId);
+    
+    this.loadingPredicciones = true;
+    this.comparacionRendimiento = null;
+    
+    this.analyticsService.compararRendimiento(userId).subscribe({
+      next: (res) => {
+        console.log('%c COMPARACIÓN RECIBIDA ', 'background: #00cc66; color: white; font-size: 14px;');
+        console.log('Respuesta completa:', res);
+        this.comparacionRendimiento = res;
+        this.loadingPredicciones = false;
+      },
+      error: (err) => {
+        console.log('%c ERROR EN COMPARACIÓN ', 'background: #cc0000; color: white; font-size: 14px;');
+        console.error('Error al comparar rendimiento:', err);
+        console.error('Mensaje de error:', err.message);
+        console.error('Status code:', err.status);
+        console.error('Error completo:', JSON.stringify(err, null, 2));
+        this.noti.error('Error', 'No se pudo obtener la comparación de rendimiento: ' + 
+                       (err.error?.detail || err.message || 'Error desconocido'));
+        this.loadingPredicciones = false;
+      }
+    });
+  }
+
   ngOnInit(): void {
+    // Verificar el rol del usuario
+    this.isAdmin = this.authService.isAdmin();
+    
+    // Cargar estudiantes y configuración inicial
     this.obtenerEstudiantes();
     this.cargarOpcionesFiltros();
   }
@@ -160,29 +264,65 @@ export class GestionEstudiantesComponent implements OnInit {
     });
   }
 
+  // Agregar este método para filtrar estudiantes por profesor (si es un profesor)
   obtenerEstudiantes(page: number = 1, pageSize: number = 10, search: string = '', gradeLevel?: string): void {
     this.loading = true;
     
     // Asegurarse de que se está pasando correctamente el parámetro search
     const searchTerm = search || this.filtros.search || '';
     
-    this.studentService.listarEstudiantes(
-      page,
-      pageSize,
-      searchTerm,
-      gradeLevel
-    ).subscribe({
-      next: (res) => {
-        this.estudiantes = res.items;
-        this.totalRecords = res.total;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.noti.error('Error', 'Error al obtener estudiantes');
-        this.loading = false;
-        console.error('Error al obtener estudiantes:', err);
-      }
-    });
+    // Para profesores, podríamos tener una lógica diferente (como mostrar solo sus estudiantes)
+    if (!this.isAdmin && this.authService.getRole() === 'Teacher') {
+      // Aquí podrías llamar a un endpoint específico para obtener solo los estudiantes del profesor
+      // O agregar un parámetro adicional para filtrar por ID del profesor
+    
+      // Para este ejemplo, seguimos utilizando el mismo servicio
+      this.studentService.listarEstudiantes(
+        page,
+        pageSize,
+        searchTerm,
+        gradeLevel,
+        // Potencialmente aquí podrías pasar el ID del profesor para filtrar
+      ).subscribe({
+        next: (res) => {
+          this.estudiantes = res.items;
+          this.totalRecords = res.total;
+          this.loading = false;
+          
+          // Verificar predicciones después de cargar estudiantes
+          // Descomentar cuando quieras activar esta funcionalidad
+          // this.verificarPrediccionesEstudiantes();
+        },
+        error: (err) => {
+          this.noti.error('Error', 'Error al obtener estudiantes');
+          this.loading = false;
+          console.error('Error al obtener estudiantes:', err);
+        }
+      });
+    } else {
+      // Comportamiento normal para administradores
+      this.studentService.listarEstudiantes(
+        page,
+        pageSize,
+        searchTerm,
+        gradeLevel
+      ).subscribe({
+        next: (res) => {
+          this.estudiantes = res.items;
+          this.totalRecords = res.total;
+          this.loading = false;
+          
+          // Verificar predicciones después de cargar estudiantes
+          // Descomentar cuando quieras activar esta funcionalidad
+          // this.verificarPrediccionesEstudiantes();
+        },
+        error: (err) => {
+          this.noti.error('Error', 'Error al obtener estudiantes');
+          this.loading = false;
+          console.error('Error al obtener estudiantes:', err);
+        }
+      });
+    }
   }
 
   // Llama a este método cuando cambie el grado o la página
@@ -209,6 +349,8 @@ export class GestionEstudiantesComponent implements OnInit {
     this.activeTabIndex = 0;
     this.perfilAcademico = null;
     this.historialCalificaciones = {};
+    this.prediccionRendimiento = null;
+    this.comparacionRendimiento = null;
     
     this.studentService.obtenerPerfilAcademico(estudiante.user_id).subscribe({
       next: (res) => {
@@ -512,6 +654,78 @@ export class GestionEstudiantesComponent implements OnInit {
         console.error('Error al eliminar estudiante:', err);
         this.loading = false;
       }
+    });
+  }
+
+  // Agregar este método después de verPerfilAcademico() o antes de ngOnInit()
+  /**
+   * Método de depuración extendido para mostrar la estructura completa del objeto estudiante
+   */
+  debugEstudiante(estudiante: any) {
+    console.log('%c DATOS COMPLETOS DEL ESTUDIANTE ', 'background: #222; color: #bada55; font-size: 16px;');
+    console.log(JSON.stringify(estudiante, null, 2));
+    
+    console.log('%c DATOS PARA PREDICCIÓN ', 'background: #222; color: #bada55; font-size: 16px;');
+    console.log('ID de usuario (user.id):', estudiante?.user?.id);
+    console.log('Tipo de dato del ID:', typeof estudiante?.user?.id);
+    console.log('Student ID:', estudiante?.student_id);
+    console.log('Nombre completo:', estudiante?.user?.first_name + ' ' + estudiante?.user?.last_name);
+  }
+
+  // Agregar esta propiedad
+  isAdmin: boolean = false;
+
+  // Agregar este método para comprobar si el usuario es un profesor
+  isProfesor(): boolean {
+    return this.authService.getRole() === 'Teacher';
+  }
+
+  // Añadir este método para verificar las predicciones de todos los estudiantes
+  verificarPrediccionesEstudiantes() {
+    if (!this.estudiantes || this.estudiantes.length === 0) return;
+    
+    // Limitar a máximo 5 estudiantes para no sobrecargar con peticiones
+    const estudiantesAVerificar = this.estudiantes.slice(0, 5);
+    
+    // Contador para saber cuándo se han completado todas las predicciones
+    let completadas = 0;
+    const totalAVerificar = estudiantesAVerificar.length;
+    
+    estudiantesAVerificar.forEach(estudiante => {
+      if (!estudiante.user?.id) {
+        completadas++;
+        return;
+      }
+      
+      const userId = Number(estudiante.user.id);
+      this.analyticsService.obtenerPrediccionRendimiento(userId).subscribe({
+        next: (res) => {
+          completadas++;
+          const prediccion = res.predicted_next_trimester_avg_grade;
+          
+          if (prediccion < 80) {
+            const nombreEstudiante = `${estudiante.full_name}`;
+            this.noti.warn(
+              'Alerta de Rendimiento', 
+              `Estudiante ${nombreEstudiante} tiene una predicción de: ${prediccion}`
+            );
+          }
+          
+          // Si es la última predicción, actualizar estado
+          if (completadas === totalAVerificar) {
+            console.log('Todas las predicciones verificadas');
+          }
+        },
+        error: (err) => {
+          completadas++;
+          console.error(`Error al verificar predicción para ${estudiante.full_name}:`, err);
+          
+          // Si es la última predicción, actualizar estado
+          if (completadas === totalAVerificar) {
+            console.log('Todas las predicciones verificadas');
+          }
+        }
+      });
     });
   }
 } // Fin de la clase GestionEstudiantesComponent

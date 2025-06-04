@@ -63,6 +63,13 @@ export const routes: Routes = [
     canActivate: [administradorGuard]
   },
   {
+    path: 'admin/gestion-parametros',
+    loadComponent: () =>
+      import('./modules/gestion-usuarios/pages/gestion-parametros/gestion-parametros.component')
+        .then(m => m.GestionParametrosComponent),
+    canActivate: [administradorGuard]
+  },
+  {
     path: 'admin/bitacora',
     loadComponent: () =>
       import('./modules/gestion-usuarios/pages/gestion-bitacora/gestion-bitacora.component')
@@ -111,6 +118,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./modules/gestion-academica/pages/gestion-calificaciones/gestion-calificaciones.component')
         .then(m => m.GestionCalificacionesComponent),
+    canActivate: [ProfesorGuard]
+  },
+  {
+    path: 'profesor/lista-estudiantes',
+    loadComponent: () =>
+      import('./modules/gestion-usuarios/pages/gestion-estudiantes/gestion-estudiantes.component')
+        .then(m => m.GestionEstudiantesComponent),
     canActivate: [ProfesorGuard]
   },
   

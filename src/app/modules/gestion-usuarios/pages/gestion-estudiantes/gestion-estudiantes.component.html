@@ -1,7 +1,10 @@
 <div class="w-full bg-blue-800 rounded-t-xl py-5 flex items-center justify-center my-4 shadow">
   <i class="pi pi-users text-2xl text-white mr-3"></i>
-  <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">Gestión de Estudiantes</h2>
-  <button pButton type="button" label="Crear estudiante" icon="pi pi-plus" class="p-button-success ml-3" (click)="abrirModalCrear()"></button>
+  <h2 class="text-2xl font-bold text-white tracking-tight text-center m-0">
+    {{ isAdmin ? 'Gestión de Estudiantes' : 'Lista de Estudiantes' }}
+  </h2>
+  <!-- Mostrar el botón de crear solo para administradores -->
+  <button *ngIf="isAdmin" pButton type="button" label="Crear estudiante" icon="pi pi-plus" class="p-button-success ml-3" (click)="abrirModalCrear()"></button>
 </div>
 
 <div class="bg-white rounded-xl overflow-visible shadow-md mt-3">
@@ -48,8 +51,10 @@
         <th class="px-4 py-2">Correo</th>
         <th class="px-4 py-2">Curso</th>
         <th class="px-4 py-2 text-center">Perfil académico</th>
-        <th class="px-4 py-2 text-center">Matriculación</th>
-        <th class="px-4 py-2 text-center">Acciones</th> <!-- Nueva columna -->
+        <!-- Mostrar opción de matriculación solo para administradores -->
+        <th *ngIf="isAdmin" class="px-4 py-2 text-center">Matriculación</th>
+        <!-- Mostrar columna de acciones solo para administradores -->
+        <th *ngIf="isAdmin" class="px-4 py-2 text-center">Acciones</th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-estudiante>
@@ -61,13 +66,13 @@
         <td class="border px-4 py-2 text-center">
           <button pButton icon="pi pi-eye" class="p-button-rounded p-button-info" (click)="verPerfilAcademico(estudiante)"></button>
         </td>
-        <td class="border px-4 py-2 text-center">
+        <!-- Mostrar botones de matriculación y acciones solo para administradores -->
+        <td *ngIf="isAdmin" class="border px-4 py-2 text-center">
           <button pButton icon="pi pi-plus-circle" class="p-button-rounded p-button-success" 
             pTooltip="Matricular en materia" tooltipPosition="top"
             (click)="abrirModalMatriculacion(estudiante)"></button>
         </td>
-        <!-- Nuevos botones de acciones -->
-        <td class="border px-4 py-2 text-center">
+        <td *ngIf="isAdmin" class="border px-4 py-2 text-center">
           <div class="flex justify-center gap-2">
             <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-warning" 
               pTooltip="Editar estudiante" tooltipPosition="top"
@@ -187,6 +192,208 @@
               </table>
             </div>
           </div>
+        </div>
+      </p-tabPanel>
+      
+      <!-- Nueva pestaña para predicciones -->
+      <p-tabPanel header="Predicciones Académicas">
+        <div class="flex flex-col md:flex-row gap-4 mb-4">
+          <button pButton 
+                  label="Obtener Predicción" 
+                  icon="pi pi-chart-line" 
+                  class="p-button-info" 
+                  [loading]="loadingPredicciones"
+                  (click)="debugEstudiante(perfilAcademico); obtenerPrediccion(perfilAcademico)" 
+                  *ngIf="!prediccionRendimiento">
+          </button>
+          
+          <button pButton 
+                  label="Comparar Rendimiento" 
+                  icon="pi pi-chart-bar"
+                  class="p-button-success" 
+                  [loading]="loadingPredicciones"
+                  (click)="compararRendimiento(perfilAcademico)" 
+                  *ngIf="!comparacionRendimiento">
+          </button>
+        </div>
+        
+        <!-- Mostrar la predicción de rendimiento si está disponible -->
+        <div class="prediccion-container border-2 rounded-lg p-4 border-blue-300 bg-blue-50 mb-4" *ngIf="prediccionRendimiento">
+          <h3 class="text-xl font-semibold text-blue-800 mb-3">Predicción de Rendimiento</h3>
+          
+          <div class="mb-3">
+            <div class="font-medium text-gray-700">Estudiante:</div>
+            <div class="ml-2">{{ perfilAcademico?.user?.first_name }} {{ perfilAcademico?.user?.last_name }} (ID: {{ prediccionRendimiento.student_id }})</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="font-medium text-gray-700">Nota Predicha (próximo trimestre):</div>
+            <div class="ml-2">
+              <span class="px-3 py-1 rounded-full text-white font-bold" 
+                    [ngClass]="{
+                      'bg-red-500': prediccionRendimiento.predicted_next_trimester_avg_grade < 51,
+                      'bg-yellow-500': prediccionRendimiento.predicted_next_trimester_avg_grade >= 51 && prediccionRendimiento.predicted_next_trimester_avg_grade < 71,
+                      'bg-green-500': prediccionRendimiento.predicted_next_trimester_avg_grade >= 71
+                    }">
+                {{ prediccionRendimiento.predicted_next_trimester_avg_grade }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="font-medium text-gray-700">Comentario:</div>
+            <div class="ml-2 italic text-gray-600">{{ prediccionRendimiento.comment }}</div>
+          </div>
+          
+          <div class="text-right">
+            <button pButton 
+                    label="Cerrar" 
+                    icon="pi pi-times" 
+                    class="p-button-text p-button-danger" 
+                    (click)="prediccionRendimiento = null">
+            </button>
+          </div>
+        </div>
+        
+        <!-- Mostrar la comparación de rendimiento si está disponible -->
+        <div class="comparacion-container border-2 rounded-lg p-4 border-green-300 bg-green-50 mb-4" *ngIf="comparacionRendimiento">
+          <h3 class="text-xl font-semibold text-green-800 mb-3">Comparación de Rendimiento</h3>
+          
+          <!-- Información del estudiante -->
+          <div class="mb-3">
+            <div class="font-medium text-gray-700">Estudiante:</div>
+            <div class="ml-2">{{ comparacionRendimiento.student_name || perfilAcademico?.user?.first_name + ' ' + perfilAcademico?.user?.last_name }} (ID: {{ comparacionRendimiento.student_id }})</div>
+          </div>
+          
+          <!-- Rendimiento actual detallado -->
+          <div class="mb-4 p-3 border-l-4 border-blue-500 bg-blue-50 rounded-r">
+            <h4 class="text-lg font-medium text-blue-800 mb-2">Rendimiento Actual</h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Promedio actual -->
+              <div>
+                <div class="text-sm text-gray-600">Promedio actual:</div>
+                <div class="flex items-center">
+                  <span class="px-3 py-1 rounded-full text-white font-bold" 
+                        [ngClass]="{
+                          'bg-red-500': comparacionRendimiento?.actual_performance_summary?.actual_average_grade < 51,
+                          'bg-yellow-500': comparacionRendimiento?.actual_performance_summary?.actual_average_grade >= 51 && comparacionRendimiento?.actual_performance_summary?.actual_average_grade < 71,
+                          'bg-green-500': comparacionRendimiento?.actual_performance_summary?.actual_average_grade >= 71
+                        }">
+                  {{ comparacionRendimiento?.actual_performance_summary?.actual_average_grade }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Curso -->
+              <div>
+                <div class="text-sm text-gray-600">Curso:</div>
+                <div class="font-medium">{{ comparacionRendimiento?.actual_performance_summary?.course_name }}</div>
+              </div>
+              
+              <!-- Periodo académico -->
+              <div>
+                <div class="text-sm text-gray-600">Periodo:</div>
+                <div class="font-medium">{{ comparacionRendimiento?.actual_performance_summary?.period_name }}</div>
+              </div>
+              
+              <!-- Trimestre -->
+              <div>
+                <div class="text-sm text-gray-600">Trimestre:</div>
+                <div class="font-medium">{{ comparacionRendimiento?.actual_performance_summary?.trimester_name }}</div>
+              </div>
+              
+              <!-- Número de calificaciones -->
+              <div>
+                <div class="text-sm text-gray-600">Calificaciones registradas:</div>
+                <div class="font-medium">{{ comparacionRendimiento?.actual_performance_summary?.number_of_grades_recorded }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Predicción anterior -->
+          <div class="mb-4 p-3 border-l-4 border-yellow-500 bg-yellow-50 rounded-r">
+            <h4 class="text-lg font-medium text-yellow-800 mb-2">Rendimiento Predicho Anteriormente</h4>
+            
+            <div class="flex items-center mb-2">
+              <div class="text-sm text-gray-600 mr-2">Nota predicha:</div>
+              <span class="px-3 py-1 rounded-full text-white font-bold" 
+                    [ngClass]="{
+                      'bg-red-500': comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade < 51,
+                      'bg-yellow-500': comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade >= 51 && comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade < 71,
+                      'bg-green-500': comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade >= 71
+                    }">
+                {{ comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade }}
+              </span>
+            </div>
+            
+            <div *ngIf="comparacionRendimiento?.predicted_performance?.comment">
+              <div class="text-sm text-gray-600">Comentario:</div>
+              <div class="italic text-gray-600">{{ comparacionRendimiento?.predicted_performance?.comment }}</div>
+            </div>
+          </div>
+          
+          <!-- Análisis de la comparación -->
+          <div class="p-3 border border-gray-200 rounded-lg bg-gray-50">
+            <h4 class="text-lg font-medium text-gray-700 mb-2">Análisis Comparativo</h4>
+            
+            <div class="flex items-center mb-3">
+              <div class="text-sm text-gray-600 mr-2">Diferencia:</div>
+              <div class="px-3 py-1 rounded-full text-white font-bold" 
+                   [ngClass]="{
+                     'bg-red-500': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) < -5,
+                     'bg-yellow-500': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) >= -5 && (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) <= 5,
+                     'bg-green-500': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) > 5
+                   }">
+                {{ (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade).toFixed(2) }}
+              </div>
+              <span class="ml-2 text-sm" 
+                    [ngClass]="{
+                      'text-red-600': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) < -5,
+                      'text-yellow-600': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) >= -5 && (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) <= 5,
+                      'text-green-600': (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) > 5
+                    }">
+                {{ (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) > 0 ? '(Mejor que lo predicho)' : (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) < 0 ? '(Peor que lo predicho)' : '(Igual que lo predicho)' }}
+              </span>
+            </div>
+            
+            <!-- Interpretación y recomendación -->
+            <div class="mt-2 p-2 rounded bg-white">
+              <p class="text-sm">
+                <span class="font-medium">Interpretación:</span> 
+                <span *ngIf="(comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) > 5">
+                  El estudiante está superando significativamente las expectativas predichas.
+                </span>
+                <span *ngIf="(comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) >= -5 && (comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) <= 5">
+                  El estudiante está dentro del rango esperado según la predicción.
+                </span>
+                <span *ngIf="(comparacionRendimiento?.actual_performance_summary?.actual_average_grade - comparacionRendimiento?.predicted_performance?.predicted_next_trimester_avg_grade) < -5">
+                  El estudiante está por debajo de las expectativas predichas.
+                </span>
+              </p>
+            </div>
+          </div>
+          
+          <div class="text-right mt-3">
+            <button pButton 
+                    label="Cerrar" 
+                    icon="pi pi-times" 
+                    class="p-button-text p-button-danger" 
+                    (click)="comparacionRendimiento = null">
+            </button>
+          </div>
+        </div>
+        
+        <!-- Mensaje si no hay datos de predicción -->
+        <div *ngIf="!prediccionRendimiento && !comparacionRendimiento && !loadingPredicciones" 
+             class="p-4 text-center text-gray-500">
+          Utilice los botones para obtener predicciones o comparar el rendimiento académico del estudiante.
+        </div>
+        
+        <!-- Indicador de carga -->
+        <div *ngIf="loadingPredicciones" class="p-4 text-center">
+          <i class="pi pi-spin pi-spinner text-blue-600 text-4xl"></i>
+          <p class="mt-2 text-blue-600">Calculando predicciones...</p>
         </div>
       </p-tabPanel>
     </p-tabView>
